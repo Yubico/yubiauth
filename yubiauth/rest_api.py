@@ -5,6 +5,7 @@ from webob import exc, Response
 from webob.dec import wsgify
 
 from yubi_auth import YubiAuth
+from model import YubiKey
 
 
 class WebAPI(object):
@@ -22,18 +23,22 @@ class WebAPI(object):
     def users(self, request):
         if 'get' in request.params or 'id' in request.params:
             return self.show_user(request)
-        elif 'create' in request.params:
+        if 'create' in request.params:
             return self.create_user(request)
-        elif 'delete' in request.params:
+        if 'delete' in request.params:
             return self.delete_user(request)
-        elif 'reset' in request.params:
+        if 'reset' in request.params:
             return self.reset_password(request)
+        if 'assign' in request.params:
+            return self.assign_yubikey(request)
+        if 'unassign' in request.params:
+            return self.unassign_yubikey(request)
 
         return self.list_users(request)
 
     def list_users(self, request):
-        names = [user['name'] for user in self.auth.list_users()]
-        return Response("Users:<br/>%s" % ('<br/>'.join(names)))
+        return Response("Users:<br/>%s" %
+                       ('<br/>'.join(self.auth.list_users())))
 
     def show_user(self, request):
         if 'get' in request.params:
@@ -58,7 +63,6 @@ class WebAPI(object):
         password = request.params['password']
         user = self.auth.create_user(username, password)
 
-        print "user:", user
         return Response('Created: %r' % (user))
 
     def delete_user(self, request):
@@ -67,7 +71,8 @@ class WebAPI(object):
         except ValueError:
             raise exc.HTTPBadRequest('Invalid user ID format!')
 
-        user = self.auth.delete_user(user_id)
+        user = self.auth.get_user(user_id)
+        self.auth.delete_user(user)
 
         return Response('Deleted user: %s' % (user))
 
@@ -81,9 +86,45 @@ class WebAPI(object):
         except ValueError:
             raise exc.HTTPBadRequest('Invalid user ID format!')
 
-        user = self.auth.set_password(user_id, password)
+        user = self.auth.get_user(user_id)
+        user.set_password(password)
+        self.auth.commit()
 
         return Response('Set password for %s' % (user))
+
+    def assign_yubikey(self, request):
+        if not 'yubikey' in request.params:
+            raise exc.HTTPBadRequest('Missing YubiKey!')
+
+        try:
+            user_id = int(request.params['assign'])
+        except ValueError:
+            raise exc.HTTPBadRequest('Invalid user ID format!')
+
+        public_id = request.params['yubikey']
+        if len(public_id) > 32:
+            public_id = public_id[:-32]
+
+        user = self.auth.get_user(user_id)
+        user.yubikeys.append(YubiKey(public_id))
+        self.auth.commit()
+
+    def unassign_yubikey(self, request):
+        if not 'yubikey' in request.params:
+            raise exc.HTTPBadRequest('Missing YubiKey!')
+
+        try:
+            user_id = int(request.params['unassign'])
+        except ValueError:
+            raise exc.HTTPBadRequest('Invalid user ID format!')
+
+        public_id = request.params['yubikey']
+        if len(public_id) > 32:
+            public_id = public_id[:-32]
+
+        user = self.auth.get_user(user_id)
+        user.yubikeys.filter(YubiKey.public_id == public_id).delete()
+        self.auth.commit()
 
     def validate(self, request):
         if not 'user' in request.params:
@@ -94,13 +135,13 @@ class WebAPI(object):
 
         if 'password' in request.params:
             password = request.params['password']
-            valid_pass = self.auth.validate_password(user, password)
+            valid_pass = user.validate_password(password)
         else:
             valid_pass = False
 
         if 'otp' in request.params:
             otp = request.params['otp']
-            valid_otp = self.auth.validate_otp(user, otp)
+            valid_otp = user.validate_otp(otp)
         else:
             valid_otp = False
 

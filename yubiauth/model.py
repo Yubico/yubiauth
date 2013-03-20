@@ -12,7 +12,9 @@ import password_auth
 from sqlalchemy import create_engine, Sequence, Column, Integer, \
     String, ForeignKey
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker, relationship
+from sqlalchemy.orm import sessionmaker, relationship, backref
+
+import json
 
 Base = declarative_base()
 
@@ -24,7 +26,10 @@ class User(Base):
     name = Column(String(32), nullable=False, unique=True)
     auth = Column(String(128))
     yubikeys = relationship(
-        'YubiKey', backref='user', cascade='all, delete, delete-orphan')
+        'YubiKey', backref=backref('user'),
+        lazy='dynamic',
+        cascade='all, delete, delete-orphan'
+    )
 
     def __init__(self, name, password):
         self.name = name
@@ -38,14 +43,21 @@ class User(Base):
 
     def validate_otp(self, otp):
         public_id = otp[:-32]
-        for yubikey in self.yubikeys:
-            if yubikey.public_id == public_id:
-                return yubikey.validate(otp)
+        try:
+            return self.yubikeys.\
+                filter(YubiKey.public_id == public_id).one().validate(otp)
+        except:
+            return False
 
-        return False
+    @property
+    def data(self):
+        return {
+            'id': self.id,
+            'name': self.name
+        }
 
     def __repr__(self):
-        return "User('%s','%s')" % (self.name, self.auth)
+        return json.dumps(self.data)
 
 
 class YubiKey(Base):
@@ -64,8 +76,15 @@ class YubiKey(Base):
             return True
         return False
 
+    @property
+    def data(self):
+        return {
+            'public_id': self.public_id,
+            'owner': self.user_id
+        }
+
     def __repr__(self):
-        return "YubiKey('%s')" % (self.public_id)
+        return json.dumps(self.data)
 
 
 def create_db(engine):
