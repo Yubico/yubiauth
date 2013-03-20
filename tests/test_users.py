@@ -1,36 +1,48 @@
 from nose import with_setup
+from nose.tools import raises
 
-from yubiauth.model import User, Session, create_db
+from yubiauth.model import create_db
+from yubiauth import YubiAuth
 
 from sqlalchemy import create_engine
-from yubiauth import settings
+from sqlalchemy.orm import sessionmaker
 
-engine = create_engine(settings['db'], echo=True)
+engine = create_engine('sqlite:///:memory:', echo=True)
 create_db(engine)
-Session.configure(bind=engine)
-session = None
+Session = sessionmaker(bind=engine)
+auth = None
 
 
 def setup():
-    global session
-    session = Session()
-    session.add(User('user1', 'p4ssw0rd'))
-    session.add(User('user2', 'foo'))
+    global auth
+    auth = YubiAuth(Session)
+    teardown()
+    auth.create_user('user1', 'p4ssw0rd')
+    auth.create_user('user2', 'foo')
 
 
-@with_setup(setup)
+def teardown():
+    for user in auth.list_users():
+        auth.delete_user(user)
+
+
+@with_setup(setup, teardown)
 def test_create_users():
-    user = User('test_user', 'test_password')
-    assert user.name == 'test_user'
+    user = auth.create_user('test_user', 'test_password')
+    assert user['name'] == 'test_user'
 
 
-@with_setup(setup)
+@with_setup(setup, teardown)
+@raises(Exception)
+def test_create_existing_username():
+    auth.create_user('user1', 'testing')
+
+
+@with_setup(setup, teardown)
 def test_validate_password():
-    (user1, user2) = session.query(User)
+    assert auth.validate_password('user1', 'p4ssw0rd')
+    assert not auth.validate_password('user1', 'foo')
+    assert not auth.validate_password('user1', 'bar')
 
-    assert user1.validate_password('p4ssw0rd')
-    assert not user1.validate_password('foo')
-    assert not user1.validate_password('bar')
-
-    assert user2.validate_password('foo')
-    assert not user2.validate_password('bar')
+    assert auth.validate_password('user2', 'foo')
+    assert not auth.validate_password('user2', 'bar')
