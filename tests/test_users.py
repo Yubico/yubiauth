@@ -29,7 +29,7 @@ def teardown():
 @with_setup(setup, teardown)
 def test_create_users():
     user = auth.create_user('test_user', 'test_password')
-    assert user['name'] == 'test_user'
+    assert user.name == 'test_user'
 
 
 @with_setup(setup, teardown)
@@ -40,9 +40,11 @@ def test_create_existing_username():
 
 @with_setup(setup, teardown)
 def test_validate_password():
-    assert auth.validate_password('user1', 'p4ssw0rd')
-    assert not auth.validate_password('user1', 'foo')
-    assert not auth.validate_password('user1', 'bar')
+    user = auth.get_user('user1')
+    assert user.validate_password('p4ssw0rd')
+    assert not user.validate_password('foo')
+    assert not user.validate_password('bar')
 
-    assert auth.validate_password('user2', 'foo')
-    assert not auth.validate_password('user2', 'bar')
+    user2 = auth.get_user('user2')
+    assert user2.validate_password('foo')
+    assert not user2.validate_password('bar')

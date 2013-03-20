@@ -1,6 +1,6 @@
 from nose import with_setup
 
-from yubiauth.model import create_db
+from yubiauth.model import create_db, YubiKey
 from yubiauth import YubiAuth
 
 from sqlalchemy import create_engine
@@ -27,6 +27,14 @@ def teardown():
 
 @with_setup(setup, teardown)
 def test_yubikey_assignment():
-    auth.assign_yubikey('user1', 'cccccccccccb')
-    auth.assign_yubikey('user2', 'cccccccccccd')
-    auth.assign_yubikey('user2', 'ccccccccccce')
+    user1 = auth.get_user('user1')
+    user1.yubikeys.append(YubiKey('cccccccccccb'))
+
+    user2 = auth.get_user('user2')
+    user2.yubikeys.append(YubiKey('cccccccccccd'))
+    user2.yubikeys.append(YubiKey('ccccccccccce'))
+
+    auth.commit()
+
+    assert user1.yubikeys.filter(YubiKey.public_id == 'cccccccccccb').one()
+    assert user2.yubikeys.count() == 2
