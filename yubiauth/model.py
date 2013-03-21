@@ -16,8 +16,6 @@ from sqlalchemy.orm import sessionmaker, relationship
 from sqlalchemy.orm.collections import attribute_mapped_collection
 from sqlalchemy.ext.associationproxy import association_proxy
 
-import json
-
 Base = declarative_base()
 
 
@@ -126,7 +124,8 @@ class User(Base):
         }
 
     def __repr__(self):
-        return json.dumps(self.data)
+        return ("User(id: '%d', name: '%s', attributes: '%r')" %
+                (self.id, self.name, self.attributes)).encode('utf-8')
 
 
 class YubiKey(Base):
@@ -173,7 +172,8 @@ class YubiKey(Base):
         }
 
     def __repr__(self):
-        return json.dumps(self.data)
+        return ("YubiKey(id: '%d', user: '%s', public_id: '%s')" %
+                (self.id, self.user.name, self.public_id)).encode('utf-8')
 
 
 class Attribute(Base):
@@ -195,6 +195,10 @@ class Attribute(Base):
     def __init__(self, key, value):
         self.key = key
         self.value = value
+
+    def __repr__(self):
+        return ("%s[%s] = %s" % (self.user.name, self.key, self.value)
+                ).encode('utf-8')
 
 
 def create_db(engine):
