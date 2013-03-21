@@ -35,10 +35,15 @@ class YubiAuth():
         """
         Gets all available users.
 
+        Gets a list of all users, represented as dicts containing id and name.
+
         @return: A list of users
         @rtype: list
         """
-        return self.session.query(User).all()
+        return [
+            {'id': row[0], 'name': row[1]}
+            for row in self.session.query(User.id, User.name).all()
+        ]
 
     def get_user(self, user_username_or_id):
         """
