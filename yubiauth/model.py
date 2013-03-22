@@ -7,7 +7,6 @@ __all__ = [
 ]
 
 from config import settings
-import password_auth
 
 from sqlalchemy import (create_engine, Sequence, Column, Integer,
                         String, ForeignKey, UniqueConstraint)
@@ -16,7 +15,10 @@ from sqlalchemy.orm import sessionmaker, relationship
 from sqlalchemy.orm.collections import attribute_mapped_collection
 from sqlalchemy.ext.associationproxy import association_proxy
 
+from passlib.context import CryptContext
+
 Base = declarative_base()
+pwd_context = CryptContext(**settings['crypt_context'])
 
 
 class User(Base):
@@ -83,7 +85,7 @@ class User(Base):
         @param password: The new password to set for the user.
         @type password: string
         """
-        self.auth = password_auth.generate(password)
+        self.auth = pwd_context.encrypt(password)
 
     def validate_password(self, password):
         """
@@ -95,7 +97,12 @@ class User(Base):
         @return: True if the password was valid, False if not.
         @rtype bool
         """
-        return password_auth.validate(password, self.auth)
+        valid, new_auth = pwd_context.verify_and_update(password, self.auth)
+        if valid:
+            if new_auth:
+                self.auth = new_auth
+            return True
+        return False
 
     def validate_otp(self, otp):
         """
