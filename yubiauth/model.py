@@ -15,10 +15,8 @@ from sqlalchemy.orm import sessionmaker, relationship
 from sqlalchemy.orm.collections import attribute_mapped_collection
 from sqlalchemy.ext.associationproxy import association_proxy
 
-from passlib.context import CryptContext
-
 Base = declarative_base()
-pwd_context = CryptContext(**settings['crypt_context'])
+pwd_context = settings['pwd_context']
 
 
 class User(Base):
@@ -97,7 +95,8 @@ class User(Base):
         @return: True if the password was valid, False if not.
         @rtype bool
         """
-        valid, new_auth = pwd_context.verify_and_update(password, self.auth)
+        valid, new_auth = pwd_context.\
+            verify_and_update(password, self.auth)
         if valid:
             if new_auth:
                 self.auth = new_auth
