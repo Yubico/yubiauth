@@ -94,3 +94,43 @@ class YubiAuth():
         if self.commit():
             return
         raise ValueError("Error deleting user: '%s'" % (user.name))
+
+    def authenticate(self, name, password, otp=None):
+        """
+        Authenticates a user.
+
+        Takes authentication parameters for a user and returns the user upon
+        successful authentication. Authentication is concidered successful if:
+        The password is valid for the user with the given username, and either:
+
+        A valid YubiKey OTP is given for a YubiKey which is assigned to the
+        user.
+
+            OR
+
+        No otp is given and the user has no YubiKeys assigned.
+
+        @param name: The username of the user.
+        @type name: string
+
+        @param password: The password of the user.
+        @type password: string
+
+        @param otp: A YubiKey OTP from one of the users YubiKeys.
+        @type otp: string
+
+        @return: A C{User} upon successful authentication, or None
+        @rtype: C{User}
+        """
+        user = self.get_user(name)
+        valid_pass = user.validate_password(password)
+
+        if otp:
+            valid_otp = user.validate_otp(otp)
+        else:
+            valid_otp = len(user.yubikeys) == 0
+
+        if valid_pass and valid_otp:
+            return user
+        else:
+            return None

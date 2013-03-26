@@ -115,10 +115,9 @@ class User(Base):
         @rtype: bool
         """
         public_id = otp[:-32]
-        try:
-            return self.yubikeys[public_id].validate(otp)
-        except:
-            return False
+        otp_valid = True  # TODO: Validate OTP against YKVAL
+
+        return otp_valid and public_id in self.yubikeys
 
     @property
     def data(self):
@@ -154,21 +153,6 @@ class YubiKey(Base):
 
     def __init__(self, public_id):
         self.public_id = public_id
-
-    def validate(self, otp):
-        """
-        Validates an OTP (One Time Password) from a YubiKey.
-
-        @param otp: The OTP to validate.
-        @type otp: string
-
-        @return: True if the OTP was valid, and belonging to this YubiKey.
-        False if not.
-        """
-        if self.public_id == otp[:-32]:
-            # TODO: Validate
-            return True
-        return False
 
     @property
     def data(self):
