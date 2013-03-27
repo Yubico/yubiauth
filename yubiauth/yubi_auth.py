@@ -31,7 +31,7 @@ class YubiAuth():
             self.session.rollback()
             return False
 
-    def list_users(self):
+    def list_users(self, **kwargs):
         """
         Gets all available users.
 
@@ -40,9 +40,20 @@ class YubiAuth():
         @return: A list of users
         @rtype: list
         """
+        query = self.session.query(User.id, User.name)
+
+        if 'yubikey' in kwargs:
+            query = query.filter(User.yubikeys.any(prefix=kwargs['yubikey']))
+            del kwargs['yubikey']
+
+        for key in kwargs:
+            query = query.filter(
+                User._attributes.any(key=key, value=kwargs[key])
+            )
+
         return [
             {'id': row[0], 'name': row[1]}
-            for row in self.session.query(User.id, User.name).all()
+            for row in query.all()
         ]
 
     def get_user(self, user_username_or_id):
