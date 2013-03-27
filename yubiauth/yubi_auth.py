@@ -1,6 +1,6 @@
 from sqlalchemy.exc import IntegrityError
 
-from model import Session, User, AttributeAssociation
+from model import Session, User, YubiKey, AttributeAssociation
 
 __all__ = [
     'YubiAuth'
@@ -31,11 +31,29 @@ class YubiAuth(object):
             self.session.rollback()
             return False
 
-    def list_users(self, **kwargs):
+    def query_users(self, **kwargs):
         """
-        Gets all available users.
+        Performs a query on all available users.
 
-        Gets a list of all users, represented as dicts containing id and name.
+        Gets a list of all users matching the filter, represented as dicts
+        containing id and name.
+
+        Filtering is dony by supplying keyword arguments, where each key-value
+        pair will match an Attribute for the user.
+
+        A special keyword "yubikey" will create a filter on users assigned
+        to the YubiKey with the prefix of the value given.
+
+        Example:
+
+        # Get users with the YubiKey ccccccccccce:
+        query_users(yubikey='ccccccccccce')
+
+        # Get users with the attribute 'area' equal to 'Stockholm'
+        # AND the attribute 'admin' equal to 'True':
+        query_users(area='Stockholm', admin='True')
+
+        For more advanced querying, use the session attribute directly.
 
         @return: A list of users
         @rtype: list
@@ -60,6 +78,25 @@ class YubiAuth(object):
             {'id': row[0], 'name': row[1]}
             for row in query.all()
         ]
+
+    def query_yubikeys(self, **kwargs):
+        query = self.session.query(YubiKey)
+
+        if 'prefix' in kwargs:
+            query = query.filter(YubiKey.prefix == kwargs['prefix'])
+            del kwargs['prefix']
+
+        for key in kwargs:
+            query = query.filter(
+                YubiKey._attribute_association.has(
+                    AttributeAssociation._attributes.any(
+                        key=key,
+                        value=kwargs[key]
+                    )
+                )
+            )
+
+        return query.all()
 
     def get_user(self, user_username_or_id):
         """
