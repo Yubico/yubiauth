@@ -1,13 +1,13 @@
 from sqlalchemy.exc import IntegrityError
 
-from model import Session, User
+from model import Session, User, AttributeAssociation
 
 __all__ = [
     'YubiAuth'
 ]
 
 
-class YubiAuth():
+class YubiAuth(object):
     """
     Main class for interacting with the YubiAuth backend.
     """
@@ -48,7 +48,12 @@ class YubiAuth():
 
         for key in kwargs:
             query = query.filter(
-                User._attributes.any(key=key, value=kwargs[key])
+                User._attribute_association.has(
+                    AttributeAssociation._attributes.any(
+                        key=key,
+                        value=kwargs[key]
+                    )
+                )
             )
 
         return [

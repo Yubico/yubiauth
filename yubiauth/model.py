@@ -6,6 +6,7 @@ __all__ = [
     'create_db'
 ]
 
+from UserDict import DictMixin
 from config import settings
 
 from sqlalchemy import (create_engine, Sequence, Column, Boolean, Integer,
@@ -28,10 +29,18 @@ user_yubikeys = Table('user_yubikeys', Base.metadata,
 
 
 class AttributeAssociation(Base):
+    """
+    Holds Attributes. Each AttributeHolder has one of these.
+
+    cvar id: Primary key.
+    cvar discriminator: The name of the type of the owner.
+    cvar attributes: Dict of attributes.
+    cvar owner: The owner of the attributes.
+    """
     __tablename__ = 'attribute_associations'
 
     id = Column(Integer, Sequence('attr_assoc_seq'), primary_key=True)
-    _discriminator = Column('discriminator', String(16))
+    discriminator = Column('discriminator', String(16))
     _attributes = relationship(
         'Attribute',
         backref='association',
@@ -47,15 +56,20 @@ class AttributeAssociation(Base):
 
     @property
     def owner(self):
-        return getattr(self, '%s_owner' % self._discriminator)
+        return getattr(self, '%s_owner' % self.discriminator)
 
 
 class Attribute(Base):
     """
     Holds an attribute for an AttributeHolder.
 
-    A user can have zero or more attributes, though each attribute must have
-    a unique key per user.
+    An AttributeHolder can have zero or more attributes, though each attribute
+    must have a unique key per user.
+
+    cvar id: Primary key.
+    cvar key: The key of the attribute.
+    cvar value: The value of the attribute.
+    cvar owner: The owner of the attribute.
     """
     __tablename__ = 'attributes'
     __table_args__ = (UniqueConstraint('association_id', 'key',
@@ -76,11 +90,71 @@ class Attribute(Base):
         return ('%s = %s' % (self.key, self.value)).encode('utf-8')
 
 
+class AttributeProxy(DictMixin):
+        """
+        Proxy used in AttributeHolder used to give access to Attributes
+        via an AttributeAssociation object, creating that object when
+        necessary.
+        """
+        def __init__(self, owner):
+            self.owner = owner
+
+        @property
+        def has_assoc(self):
+            return bool(self.owner._attribute_association)
+
+        @property
+        def assoc(self):
+            if not self.owner._attribute_association:
+                discriminator = self.owner.__class__.__name__.lower()
+                self.owner._attribute_association = AttributeAssociation(
+                    discriminator=discriminator)
+            return self.owner._attribute_association
+
+        def __getitem__(self, key):
+            if self.has_assoc:
+                return self.assoc.attributes[key]
+            raise KeyError(key)
+
+        def __setitem__(self, key, value):
+            self.assoc.attributes[key] = value
+
+        def __delitem__(self, key):
+            if self.has_assoc:
+                del self.assoc.attributes[key]
+            else:
+                raise KeyError(key)
+
+        def keys(self):
+            if self.has_assoc:
+                return self.assoc.attributes.keys()
+            return []
+
+
 class AttributeHolder(object):
-    def __init__(self):
-        discriminator = self.__class__.__name__.lower()
-        self._attribute_association = AttributeAssociation(
-            _discriminator=discriminator)
+    """
+    Mixin class for model objects that should hold Attributes.
+
+    Attributes can be easily accessed through common dict operations.
+
+    holder.attributes['foo'] = 'bar'
+    holder.attributes = {'key1': 'val', 'key2': 'otherval'}
+    """
+
+    @property
+    def attributes(self):
+        if not '_attributes' in self.__dict__:
+            self._attributes = AttributeProxy(self)
+        return self._attributes
+
+    @attributes.setter
+    def attributes(self, value):
+        self.attributes.clear()
+        self.attributes.update(value)
+
+    @declared_attr
+    def _discriminator(cls):
+        return cls.__name__.lower()
 
     @declared_attr
     def _attribute_association_id(cls):
@@ -89,13 +163,8 @@ class AttributeHolder(object):
 
     @declared_attr
     def _attribute_association(cls):
-        discriminator = cls.__name__.lower()
-        cls.attributes = association_proxy(
-            '_attribute_association',
-            'attributes'
-        )
         return relationship('AttributeAssociation', backref=backref(
-            '%s_owner' % discriminator, uselist=False), cascade=
+            '%s_owner' % cls._discriminator, uselist=False), cascade=
             'all, delete')
 
 
@@ -123,7 +192,6 @@ class User(AttributeHolder, Base):
         backref='users',
         order_by='YubiKey.prefix',
         collection_class=attribute_mapped_collection('prefix'),
-        # cascade='all, delete-orphan'
     )
 
     def __init__(self, name, password):
@@ -152,6 +220,7 @@ class User(AttributeHolder, Base):
         else:
             self.yubikeys[prefix] = YubiKey(prefix)
         session.commit()
+        return self.yubikeys[prefix]
 
     def set_password(self, password):
         """
