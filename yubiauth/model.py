@@ -168,7 +168,21 @@ class AttributeHolder(object):
             'all, delete')
 
 
-class User(AttributeHolder, Base):
+class Deletable(object):
+    """
+    Mixin for model objects which should have a delete method.
+    """
+    def delete(self):
+        session = Session.object_session(self)
+        if not session:
+            pass
+        elif self in session.new:
+            session.expunge(self)
+        else:
+            session.delete(self)
+
+
+class User(AttributeHolder, Deletable, Base):
     """
     A user.
 
@@ -219,7 +233,6 @@ class User(AttributeHolder, Base):
             existing_key.users.append(self)
         else:
             self.yubikeys[prefix] = YubiKey(prefix)
-        session.commit()
         return self.yubikeys[prefix]
 
     def set_password(self, password):
@@ -279,11 +292,13 @@ class User(AttributeHolder, Base):
         }
 
     def __repr__(self):
-        return ("User(id: '%r', name: '%s', attributes: '%r')" %
-                (self.id, self.name, self.attributes)).encode('utf-8')
+        return (
+            "User(id: '%r', name: '%s', yubikeys: '%r', attributes: '%r')" %
+            (self.id, self.name, self.yubikeys.keys(), self.attributes)
+        ).encode('utf-8')
 
 
-class YubiKey(AttributeHolder, Base):
+class YubiKey(AttributeHolder, Deletable, Base):
     """
     A reference to a YubiKey.
 

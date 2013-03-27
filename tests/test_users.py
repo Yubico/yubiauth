@@ -23,7 +23,7 @@ def setup():
 
 def teardown():
     for user in auth.list_users():
-        auth.delete_user(auth.get_user(user['id']))
+        auth.get_user(user['id']).delete()
 
 
 @with_setup(setup, teardown)

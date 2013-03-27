@@ -99,18 +99,6 @@ class YubiAuth(object):
             return user
         raise ValueError("Error creating user: '%s'" % (username))
 
-    def delete_user(self, user):
-        """
-        Deletes the given user.
-
-        @param user: The user to delete.
-        @type user: C{User}
-        """
-        self.session.delete(user)
-        if self.commit():
-            return
-        raise ValueError("Error deleting user: '%s'" % (user.name))
-
     def authenticate(self, name, password, otp=None):
         """
         Authenticates a user.
