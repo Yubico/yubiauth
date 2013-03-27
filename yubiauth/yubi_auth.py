@@ -80,11 +80,22 @@ class YubiAuth(object):
         ]
 
     def query_yubikeys(self, **kwargs):
-        query = self.session.query(YubiKey)
+        """
+        Performs a query on all available YubiKeys.
 
-        if 'prefix' in kwargs:
-            query = query.filter(YubiKey.prefix == kwargs['prefix'])
-            del kwargs['prefix']
+        Gets a list of all YubiKeys matching the filter.
+
+        Filtering is dony by supplying keyword arguments, where each key-value
+        pair will match an Attribute for the YubiKey.
+
+        Example:
+        # Get YubiKey with the attribute 'revoke' equal to 'foo':
+        query_yubikeys(revoke='foo')
+
+        @return: A list of YubiKeys
+        @rtype: list
+        """
+        query = self.session.query(YubiKey)
 
         for key in kwargs:
             query = query.filter(
@@ -116,6 +127,16 @@ class YubiAuth(object):
                 return query.get(user_username_or_id)
             else:
                 return query.filter(User.name == user_username_or_id).one()
+
+    def get_yubikey(self, prefix):
+        """
+        Gets a YubiKey by its prefix.
+
+        @param prefix: A YubiKey prefix
+        @type prefix: string
+        """
+        return self.session.query(YubiKey).filter(
+            YubiKey.prefix == prefix).one()
 
     def create_user(self, username, password):
         """

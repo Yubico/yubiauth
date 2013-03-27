@@ -21,7 +21,7 @@ def setup():
 
 
 def teardown():
-    for user in auth.list_users():
+    for user in auth.query_users():
         auth.get_user(user['id']).delete()
 
 
