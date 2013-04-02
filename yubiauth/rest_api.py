@@ -6,133 +6,183 @@ from webob.dec import wsgify
 
 from yubi_auth import YubiAuth
 import json
+import re
+
+ID_PATTERN = r'\d+'
+USERNAME_PATTERN = r'(?=.*[a-zA-Z])[-_a-zA-Z0-9]{3,}'
+PASSWORD_PATTERN = r'\S{3,}'
+YUBIKEY_PATTERN = r'[cbdefghijklnrtuv]{0,64}'
+ATTRIBUTE_KEY_PATTERN = r'[-_a-zA-Z]+'
+
+ID_RE = re.compile(r'^%s$' % ID_PATTERN)
+
+
+class Route(object):
+    def __init__(self, pattern_str, controller=None, get=None, post=None):
+        self.pattern = re.compile(pattern_str)
+        if controller:
+            self.get = controller
+        else:
+            self.get = get
+            self.post = post
+
+    def get_controller(self, request):
+        path = request.path[1:]
+        if path.endswith('/'):
+            path = path[:-1]
+        match = self.pattern.match(path)
+
+        if match:
+            try:
+                controller = self.__getattribute__(request.method.lower())
+                return controller, match.groups()
+            except AttributeError:
+                print 'method not found!'
+                print path
+                print self.pattern.pattern
+                print request.method.lower()
+                print self.__dict__
+
+                raise exc.HTTPMethodNotAllowed
+
+        return None, None
 
 
 class WebAPI(object):
-    """
-    Provides a REST API for accessing YubiAuth.
-    """
+    __user__ = r'^users/(%s|%s)' % (ID_PATTERN, USERNAME_PATTERN)
+    __attribute__ = __user__ + r'/attributes/(%s)' % ATTRIBUTE_KEY_PATTERN
+    __yubikey__ = __user__ + r'/yubikeys/(%s)' % YUBIKEY_PATTERN
 
     __routes__ = [
-        (lambda p: 'get' in p or 'id' in p, 'show_user'),
-        (lambda p: 'create' in p, 'create_user'),
-        (lambda p: 'delete' in p, 'delete_user'),
-        (lambda p: 'reset' in p, 'reset_password'),
-        (lambda p: 'assign' in p, 'assign_yubikey'),
-        (lambda p: 'unassign' in p, 'unassign_yubikey'),
-        (lambda p: 'key' in p and 'value' in p, 'set_attribute')
+        Route(r'^users$', get='list_users', post='create_user'),
+        Route(__user__ + r'$', 'show_user'),
+        Route(__user__ + r'/reset$', 'reset_password'),
+        Route(__user__ + r'/delete$', 'delete_user'),
+        Route(__user__ + r'/attributes$', get='list_attributes',
+              post='set_attribute'),
+        Route(__attribute__ + r'$', 'show_attribute'),
+        Route(__attribute__ + r'/delete$', 'unset_attribute'),
+        Route(__user__ + r'/yubikeys$', get='list_yubikeys',
+              post='bind_yubikey'),
+        Route(__yubikey__ + r'$', 'show_yubikey'),
+        Route(__yubikey__ + r'/delete$', 'unbind_yubikey'),
+        Route(r'^validate$', get='validate', post='validate')
     ]
 
     @wsgify
     def __call__(self, request):
         self.auth = YubiAuth()
 
-        if request.path == '/users':
-            return self.users(request)
-        elif request.path == '/validate':
-            return self.validate(request)
+        for route in self.__routes__:
+            controller, args = route.get_controller(request)
+            if controller:
+                return self.__getattribute__(controller)(request, *args)
 
-        return Response('Index')
+        raise exc.HTTPNotFound
 
-    def users(self, request):
-        for route in WebAPI.__routes__:
-            if route[0](request.params):
-                return getattr(self, route[1])(request)
+    def _get_user(self, username_or_id):
+        if ID_RE.match(username_or_id):
+            username_or_id = int(username_or_id)
 
-        return self.list_users(request)
+        try:
+            return self.auth.get_user(username_or_id)
+        except:
+            raise exc.HTTPNotFound
+
+    # Users
 
     def list_users(self, request):
-        return Response("Users:<br/>%s" %
-                        (json.dumps(self.auth.list_users())))
-
-    def show_user(self, request):
-        if 'get' in request.params:
-            name_or_id = request.params['get']
-        elif 'id' in request.params:
-            try:
-                name_or_id = int(request.params['id'])
-            except ValueError:
-                raise exc.HTTPBadRequest('Invalid ID format!')
-        else:
-            raise exc.HTTPInternalServerError()
-
-        user = self.auth.get_user(name_or_id)
-
-        return Response('User: %s' % (user))
+        return Response(json.dumps(self.auth.query_users()))
 
     def create_user(self, request):
-        if not 'password' in request.params:
-            raise exc.HTTPBadRequest('Missing password!')
-
-        username = request.params['create']
+        username = request.params['username']
         password = request.params['password']
+
         user = self.auth.create_user(username, password)
 
-        return Response('Created: %r' % (user))
+        return exc.HTTPSeeOther(location='/users/%d' % user.id)
 
-    def delete_user(self, request):
-        try:
-            user_id = int(request.params['delete'])
-        except ValueError:
-            raise exc.HTTPBadRequest('Invalid user ID format!')
+    def show_user(self, request, username_or_id):
+        user = self._get_user(username_or_id)
+        return Response(json.dumps(user.data))
 
-        user = self.auth.get_user(user_id)
-        self.auth.delete_user(user)
-
-        return Response('Deleted user: %s' % (user))
-
-    def reset_password(self, request):
-        if not 'password' in request.params:
-            raise exc.HTTPBadRequest('Missing password!')
+    def reset_password(self, request, username_or_id):
+        user = self._get_user(username_or_id)
         password = request.params['password']
-
-        try:
-            user_id = int(request.params['reset'])
-        except ValueError:
-            raise exc.HTTPBadRequest('Invalid user ID format!')
-
-        user = self.auth.get_user(user_id)
         user.set_password(password)
         self.auth.commit()
 
-        return Response('Set password for %s' % (user))
+        return Response(json.dumps({
+            'status': True,
+            'action': 'reset_password',
+            'user': user.data
+        }))
 
-    def assign_yubikey(self, request):
-        if not 'yubikey' in request.params:
-            raise exc.HTTPBadRequest('Missing YubiKey!')
-
-        try:
-            user_id = int(request.params['assign'])
-        except ValueError:
-            raise exc.HTTPBadRequest('Invalid user ID format!')
-
-        yubikey = request.params['yubikey']
-
-        user = self.auth.get_user(user_id)
-        user.assign_yubikey(yubikey)
+    def delete_user(self, request, username_or_id):
+        user = self._get_user(username_or_id)
+        user.delete()
         self.auth.commit()
 
-    def unassign_yubikey(self, request):
-        if not 'yubikey' in request.params:
-            raise exc.HTTPBadRequest('Missing YubiKey!')
+        return Response(json.dumps({
+            'status': True,
+            'action': 'delete',
+            'user': user.data
+        }))
 
-        try:
-            user_id = int(request.params['unassign'])
-        except ValueError:
-            raise exc.HTTPBadRequest('Invalid user ID format!')
+    # Attributes
 
-        public_id = request.params['yubikey']
-        if len(public_id) > 32:
-            public_id = public_id[:-32]
+    def list_attributes(self, request, username_or_id):
+        user = self._get_user(username_or_id)
+        return Response(json.dumps(user.attributes.copy()))
 
-        user = self.auth.get_user(user_id)
-        del user.yubikeys[public_id]
+    def show_attribute(self, request, username_or_id, attribute_key):
+        user = self._get_user(username_or_id)
+        return Response(json.dumps(user.attributes[attribute_key]))
+
+    def set_attribute(self, request, username_or_id):
+        user = self._get_user(username_or_id)
+        key = request.params['key']
+        value = request.params['value']
+        user.attributes[key] = value
         self.auth.commit()
+
+        return Response(json.dumps(True))
+
+    def unset_attribute(self, request, username_or_id, attribute_key):
+        user = self._get_user(username_or_id)
+        del user.attributes[attribute_key]
+        self.auth.commit()
+
+        return Response(json.dumps(True))
+
+    # YubiKeys
+
+    def list_yubikeys(self, request, username_or_id):
+        user = self._get_user(username_or_id)
+        return Response(json.dumps(user.yubikeys.keys()))
+
+    def show_yubikey(self, request, username_or_id, prefix):
+        user = self._get_user(username_or_id)
+        return Response(json.dumps(user.yubikeys[prefix].data))
+
+    def bind_yubikey(self, request, username_or_id):
+        user = self._get_user(username_or_id)
+        prefix = request.params['yubikey']
+        user.assign_yubikey(prefix)
+        self.auth.commit()
+
+        return Response(json.dumps(True))
+
+    def unbind_yubikey(self, request, username_or_id, prefix):
+        user = self._get_user(username_or_id)
+        del user.yubikeys[prefix]
+        self.auth.commit()
+
+        return Response(json.dumps(True))
+
+    # Validate
 
     def validate(self, request):
-        if not 'user' in request.params:
-            raise exc.HTTPBadRequest('Missing user!')
-
         username = request.params['user']
         user = self.auth.get_user(username)
 
@@ -149,27 +199,10 @@ class WebAPI(object):
             valid_otp = False
 
         return Response(json.dumps({
-            'user': user.data(),
+            'user': user.data,
             'valid_password': valid_pass,
             'valid_otp': valid_otp
         }))
-
-    def set_attribute(self, request):
-        if not 'user' in request.params:
-            raise exc.HTTPBadRequest('Missing user!')
-
-        try:
-            user_id = int(request.params['user'])
-        except ValueError:
-            raise exc.HTTPBadRequest('Invalid user ID format!')
-
-        attr_key = request.params['key']
-        attr_value = request.params['value']
-
-        user = self.auth.get_user(user_id)
-        user.attributes[attr_key] = attr_value
-        self.auth.commit()
-
 
 application = WebAPI()
 
