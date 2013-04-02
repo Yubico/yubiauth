@@ -1,0 +1,15 @@
+YubiAuth
+========
+
+*YubiAuth is a work in progress, and should not be concidered ready for use*
+
+YubiAuth provides a user management system which can be used as a base for 
+other systems. It allows the creation of users, which can be authenticated by
+username, password, and optionally a YubiKey OTP.
+
+Aside from providing a user authentication backend, YubiAuth allows storing 
+and retrieving arbitrary key-value attributes for each user as well as each 
+YubiKey.
+
+Though effort has been made to store password hashes securely, YubiAuth also 
+allows using a YubiHSM for increased security.
