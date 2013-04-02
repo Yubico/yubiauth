@@ -130,6 +130,11 @@ class AttributeProxy(DictMixin):
                 return self.assoc.attributes.keys()
             return []
 
+        def copy(self):
+            copy = {}
+            copy.update(self)
+            return copy
+
 
 class AttributeHolder(object):
     """
@@ -324,7 +329,8 @@ class YubiKey(AttributeHolder, Deletable, Base):
     def data(self):
         return {
             'prefix': self.prefix,
-            'owner': self.user_id
+            'owner': self.user_id,
+            'enabled': self.enabled
         }
 
     def __repr__(self):
