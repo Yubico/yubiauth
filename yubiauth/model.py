@@ -44,10 +44,13 @@ from sqlalchemy.orm import sessionmaker, relationship, backref
 from sqlalchemy.orm.collections import attribute_mapped_collection
 from sqlalchemy.ext.associationproxy import association_proxy
 
+from yubico.yubico import Yubico
+
 
 Base = declarative_base()
 
 pwd_context = settings['pwd_context']
+yubico = Yubico('11004', '5Vm3Zp2mUTQHMo1DeG9tdojpc1Y=')
 
 
 user_yubikeys = Table('user_yubikeys', Base.metadata,
@@ -308,7 +311,7 @@ class User(AttributeHolder, Deletable, Base):
         @rtype: bool
         """
         prefix = otp[:-32]
-        otp_valid = True  # TODO: Validate OTP against YKVAL
+        otp_valid = yubico.verify(otp)
 
         if prefix in self.yubikeys:
             return otp_valid and self.yubikeys[prefix].enabled
