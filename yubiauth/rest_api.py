@@ -170,7 +170,9 @@ class WebAPI(object):
 
     def show_attribute(self, request, username_or_id, attribute_key):
         user = self._get_user(username_or_id)
-        return Response(json.dumps(user.attributes[attribute_key]))
+        if attribute_key in user.attributes:
+            return Response(json.dumps(user.attributes[attribute_key]))
+        return Response(json.dumps(None))
 
     def set_attribute(self, request, username_or_id):
         user = self._get_user(username_or_id)
