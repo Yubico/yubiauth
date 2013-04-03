@@ -45,8 +45,9 @@ ATTRIBUTE_KEY_PATTERN = r'[-_a-zA-Z0-9]+'
 ID_RE = re.compile(r'^%s$' % ID_PATTERN)
 
 
-def json_response(data):
-    return Response(json.dumps(data), content_type='application/json')
+def json_response(data, **kwargs):
+    return Response(json.dumps(data), content_type='application/json',
+                    **kwargs)
 
 
 class Route(object):
@@ -90,6 +91,7 @@ class WebAPI(object):
         ATTRIBUTE_KEY_PATTERN
 
     __routes__ = [
+        Route(r'user$', 'find_user'),
         Route(r'^users$', get='list_users', post='create_user'),
         Route(__user__ + r'$', get='show_user', delete='delete_user'),
         Route(__user__ + r'/reset$', post='reset_password'),
@@ -159,8 +161,20 @@ class WebAPI(object):
 
     # Users
 
+    def find_user(self, request):
+        users = self.auth.query_users(**request.params)
+        if len(users) == 1:
+            user_id = users[0]['id']
+            user = self.auth.get_user(user_id)
+            response = json_response(user.data)
+            response.headers.add('Link', '<%s>; rel="canonical"' %
+                                 request.relative_url('users/%d' % user_id))
+            return response
+
+        raise exc.HTTPNotFound
+
     def list_users(self, request):
-        return json_response(self.auth.query_users())
+        return json_response(self.auth.query_users(**request.params))
 
     def create_user(self, request):
         try:
@@ -171,7 +185,7 @@ class WebAPI(object):
 
         try:
             user = self.auth.create_user(username, password)
-            return exc.HTTPSeeOther(location='/users/%d' % user.id)
+            return exc.HTTPCreated(location='/users/%d' % user.id)
         except:
             raise exc.HTTPServerError
 
