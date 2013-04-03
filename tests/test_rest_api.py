@@ -10,8 +10,7 @@ app = TestApp(application)
 def test_create_user():
     resp = app.post('/users', {'username': 'user1', 'password': 'foo'},
                     status=303)
-    user_page = resp.follow()
-    user = user_page.json
+    user = resp.follow().json
     assert user['name'] == 'user1'
     assert user['id'] == 1
     app.post('/users', {'username': 'user2', 'password': 'bar'},
@@ -122,6 +121,10 @@ def test_unbind_yubikeys():
     resp = app.get('/users/1/yubikeys')
     yubikeys = resp.json
     assert yubikeys == [PREFIX_2]
+
+
+def test_authenticate_without_yubikey():
+    app.get('/authenticate?username=user2&password=bar', status=401)
 
 
 # Attributes
