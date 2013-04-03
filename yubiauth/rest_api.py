@@ -101,6 +101,11 @@ class WebAPI(object):
 
         Route(__user_yubikey__ + r'$', get='show_yubikey'),
         Route(__user_yubikey__ + r'/delete$', post='unbind_yubikey'),
+        Route(__user_yubikey__ + r'/attributes$',
+              get='list_yubikey_attributes', post='set_yubikey_attribute'),
+        Route(__user_yubikey_attribute__ + r'$', get='show_yubikey_attribute'),
+        Route(__user_yubikey_attribute__ + r'/delete$',
+              post='unset_yubikey_attribute'),
 
         Route(__yubikey__ + r'$', get='show_yubikey'),
         Route(__yubikey__ + r'/delete$', post='delete_yubikey'),
@@ -134,11 +139,17 @@ class WebAPI(object):
         except:
             raise exc.HTTPNotFound
 
-    def _get_yubikey(self, prefix):
+    def _get_yubikey(self, *args):
         try:
-            return self.auth.get_yubikey(prefix)
+            if len(args) == 1:
+                return self.auth.get_yubikey(args[0])
+            elif len(args) >= 2:
+                user = self._get_user(args[0])
+                return user.yubikeys[args[1]]
         except:
-            raise exc.HTTPNotFound
+            pass
+
+        raise exc.HTTPNotFound
 
     # Users
 
@@ -189,8 +200,8 @@ class WebAPI(object):
     def list_user_attributes(self, request, username_or_id):
         return self._list_attributes(self._get_user(username_or_id))
 
-    def list_yubikey_attributes(self, request, prefix):
-        return self._list_attributes(self._get_yubikey(prefix))
+    def list_yubikey_attributes(self, request, *args):
+        return self._list_attributes(self._get_yubikey(*args))
 
     def _show_attribute(self, owner, attribute_key):
         if attribute_key in owner.attributes:
@@ -201,8 +212,9 @@ class WebAPI(object):
         return self._show_attribute(self._get_user(username_or_id),
                                     attribute_key)
 
-    def show_yubikey_attribute(self, request, prefix, attribute_key):
-        return self._show_attribute(self._get_yubikey(prefix),
+    def show_yubikey_attribute(self, request, *args):
+        attribute_key = args[-1]
+        return self._show_attribute(self._get_yubikey(*args[:-1]),
                                     attribute_key)
 
     def _set_attribute(self, request, owner):
@@ -220,8 +232,8 @@ class WebAPI(object):
     def set_user_attribute(self, request, username_or_id):
         return self._set_attribute(request, self._get_user(username_or_id))
 
-    def set_yubikey_attribute(self, request, prefix):
-        return self._set_attribute(request, self._get_yubikey(prefix))
+    def set_yubikey_attribute(self, request, *args):
+        return self._set_attribute(request, self._get_yubikey(*args))
 
     def _unset_attribute(self, owner, attribute_key):
         del owner.attributes[attribute_key]
@@ -233,8 +245,10 @@ class WebAPI(object):
         return self._unset_attribute(self._get_user(username_or_id),
                                      attribute_key)
 
-    def unset_yubikey_attribute(self, request, prefix, attribute_key):
-        return self._unset_attribute(self._get_yubikey(prefix), attribute_key)
+    def unset_yubikey_attribute(self, request, *args):
+        attribute_key = args[-1]
+        return self._unset_attribute(self._get_yubikey(*args[:-1]),
+                                     attribute_key)
 
     # YubiKeys
 
@@ -243,17 +257,7 @@ class WebAPI(object):
         return json_response(user.yubikeys.keys())
 
     def show_yubikey(self, request, *args):
-        try:
-            if len(args) == 0:
-                raise ValueError
-            elif len(args) == 1:
-                yubikey = self.auth.get_yubikey(args[0])
-            else:
-                user = self._get_user(args[0])
-                yubikey = user.yubikeys[args[1]]
-        except:
-            raise exc.HTTPNotFound
-
+        yubikey = self._get_yubikey(*args)
         return json_response(yubikey.data)
 
     def bind_yubikey(self, request, username_or_id):
