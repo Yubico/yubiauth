@@ -79,22 +79,37 @@ class Route(object):
 
 class WebAPI(object):
     __user__ = r'^users/(%s|%s)' % (ID_PATTERN, USERNAME_PATTERN)
-    __attribute__ = __user__ + r'/attributes/(%s)' % ATTRIBUTE_KEY_PATTERN
-    __yubikey__ = __user__ + r'/yubikeys/(%s)' % YUBIKEY_PATTERN
+    __user_attribute__ = __user__ + r'/attributes/(%s)' % ATTRIBUTE_KEY_PATTERN
+    __user_yubikey__ = __user__ + r'/yubikeys/(%s)' % YUBIKEY_PATTERN
+    __yubikey__ = r'^yubikeys/(%s)' % YUBIKEY_PATTERN
+    __yubikey_attribute__ = __yubikey__ + r'/attributes/(%s)' %\
+        ATTRIBUTE_KEY_PATTERN
+    __user_yubikey_attribute__ = __user_yubikey__ + r'/attributes/(%s)' %\
+        ATTRIBUTE_KEY_PATTERN
 
     __routes__ = [
         Route(r'^users$', get='list_users', post='create_user'),
         Route(__user__ + r'$', get='show_user'),
         Route(__user__ + r'/reset$', post='reset_password'),
         Route(__user__ + r'/delete$', post='delete_user'),
-        Route(__user__ + r'/attributes$', get='list_attributes',
-              post='set_attribute'),
-        Route(__attribute__ + r'$', get='show_attribute'),
-        Route(__attribute__ + r'/delete$', post='unset_attribute'),
+        Route(__user__ + r'/attributes$', get='list_user_attributes',
+              post='set_user_attribute'),
+        Route(__user_attribute__ + r'$', get='show_user_attribute'),
+        Route(__user_attribute__ + r'/delete$', post='unset_user_attribute'),
         Route(__user__ + r'/yubikeys$', get='list_yubikeys',
               post='bind_yubikey'),
+
+        Route(__user_yubikey__ + r'$', get='show_yubikey'),
+        Route(__user_yubikey__ + r'/delete$', post='unbind_yubikey'),
+
         Route(__yubikey__ + r'$', get='show_yubikey'),
-        Route(__yubikey__ + r'/delete$', post='unbind_yubikey'),
+        Route(__yubikey__ + r'/delete$', post='delete_yubikey'),
+        Route(__yubikey__ + r'/attributes$', get='list_yubikey_attributes',
+              post='set_yubikey_attribute'),
+        Route(__yubikey_attribute__ + r'$', get='show_yubikey_attribute'),
+        Route(__yubikey_attribute__ + r'/delete$',
+              post='unset_yubikey_attribute'),
+
         Route(r'^validate$', 'validate'),
         Route(r'^authenticate$', 'authenticate')
     ]
@@ -116,6 +131,12 @@ class WebAPI(object):
 
         try:
             return self.auth.get_user(username_or_id)
+        except:
+            raise exc.HTTPNotFound
+
+    def _get_yubikey(self, prefix):
+        try:
+            return self.auth.get_yubikey(prefix)
         except:
             raise exc.HTTPNotFound
 
@@ -162,35 +183,58 @@ class WebAPI(object):
 
     # Attributes
 
-    def list_attributes(self, request, username_or_id):
-        user = self._get_user(username_or_id)
-        return json_response(user.attributes.copy())
+    def _list_attributes(self, owner):
+        return json_response(owner.attributes.copy())
 
-    def show_attribute(self, request, username_or_id, attribute_key):
-        user = self._get_user(username_or_id)
-        if attribute_key in user.attributes:
-            return json_response(user.attributes[attribute_key])
+    def list_user_attributes(self, request, username_or_id):
+        return self._list_attributes(self._get_user(username_or_id))
+
+    def list_yubikey_attributes(self, request, prefix):
+        return self._list_attributes(self._get_yubikey(prefix))
+
+    def _show_attribute(self, owner, attribute_key):
+        if attribute_key in owner.attributes:
+            return json_response(owner.attributes[attribute_key])
         return json_response(None)
 
-    def set_attribute(self, request, username_or_id):
-        user = self._get_user(username_or_id)
+    def show_user_attribute(self, request, username_or_id, attribute_key):
+        return self._show_attribute(self._get_user(username_or_id),
+                                    attribute_key)
+
+    def show_yubikey_attribute(self, request, prefix, attribute_key):
+        return self._show_attribute(self._get_yubikey(prefix),
+                                    attribute_key)
+
+    def _set_attribute(self, request, owner):
         try:
             key = request.params['key']
             value = request.params['value']
         except KeyError:
             raise exc.HTTPBadRequest
 
-        user.attributes[key] = value
+        owner.attributes[key] = value
         self.auth.commit()
 
         raise exc.HTTPNoContent
 
-    def unset_attribute(self, request, username_or_id, attribute_key):
-        user = self._get_user(username_or_id)
-        del user.attributes[attribute_key]
+    def set_user_attribute(self, request, username_or_id):
+        return self._set_attribute(request, self._get_user(username_or_id))
+
+    def set_yubikey_attribute(self, request, prefix):
+        return self._set_attribute(request, self._get_yubikey(prefix))
+
+    def _unset_attribute(self, owner, attribute_key):
+        del owner.attributes[attribute_key]
         self.auth.commit()
 
         raise exc.HTTPNoContent
+
+    def unset_user_attribute(self, request, username_or_id, attribute_key):
+        return self._unset_attribute(self._get_user(username_or_id),
+                                     attribute_key)
+
+    def unset_yubikey_attribute(self, request, prefix, attribute_key):
+        return self._unset_attribute(self._get_yubikey(prefix), attribute_key)
 
     # YubiKeys
 
@@ -198,12 +242,19 @@ class WebAPI(object):
         user = self._get_user(username_or_id)
         return json_response(user.yubikeys.keys())
 
-    def show_yubikey(self, request, username_or_id, prefix):
-        user = self._get_user(username_or_id)
+    def show_yubikey(self, request, *args):
         try:
-            return json_response(user.yubikeys[prefix].data)
-        except KeyError:
+            if len(args) == 0:
+                raise ValueError
+            elif len(args) == 1:
+                yubikey = self.auth.get_yubikey(args[0])
+            else:
+                user = self._get_user(args[0])
+                yubikey = user.yubikeys[args[1]]
+        except:
             raise exc.HTTPNotFound
+
+        return json_response(yubikey.data)
 
     def bind_yubikey(self, request, username_or_id):
         user = self._get_user(username_or_id)
@@ -216,6 +267,13 @@ class WebAPI(object):
     def unbind_yubikey(self, request, username_or_id, prefix):
         user = self._get_user(username_or_id)
         del user.yubikeys[prefix]
+        self.auth.commit()
+
+        raise exc.HTTPNoContent
+
+    def delete_yubikey(self, request, prefix):
+        yubikey = self._get_yubikey(prefix)
+        yubikey.delete()
         self.auth.commit()
 
         raise exc.HTTPNoContent

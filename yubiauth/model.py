@@ -361,7 +361,8 @@ class YubiKey(AttributeHolder, Deletable, Base):
         return {
             'id': self.id,
             'prefix': self.prefix,
-            'enabled': self.enabled
+            'enabled': self.enabled,
+            'attributes': self.attributes.copy()
         }
 
     def __repr__(self):

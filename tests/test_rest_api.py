@@ -127,10 +127,10 @@ def test_authenticate_without_yubikey():
     app.get('/authenticate?username=user2&password=bar', status=401)
 
 
-# Attributes
+# User Attributes
 
 
-def test_assign_attributes():
+def test_assign_user_attributes():
     app.post('/users/1/attributes', {'key': 'attr1', 'value': 'val1'})
     app.post('/users/1/attributes', {'key': 'attr2', 'value': 'val2'})
 
@@ -145,17 +145,17 @@ def test_assign_attributes():
     assert user['attributes'] == attributes
 
 
-def test_read_attribute():
+def test_read_user_attribute():
     resp = app.get('/users/1/attributes/attr1')
     assert resp.json == 'val1'
 
 
-def test_read_missing_attribute():
+def test_read_missing_user_attribute():
     resp = app.get('/users/1/attributes/foo')
     assert not resp.json
 
 
-def test_overwrite_attributes():
+def test_overwrite_user_attributes():
     app.post('/users/1/attributes', {'key': 'attr1', 'value': 'newval'})
     resp = app.get('/users/1/attributes')
     attributes = resp.json
@@ -165,7 +165,7 @@ def test_overwrite_attributes():
     assert len(attributes) == 2
 
 
-def test_unset_attributes():
+def test_unset_user_attributes():
     app.post('/users/1/attributes/attr1/delete')
     resp = app.get('/users/1/attributes')
     attributes = resp.json
@@ -174,4 +174,57 @@ def test_unset_attributes():
     assert len(attributes) == 1
 
     resp = app.get('/users/1/attributes/attr1')
+    assert not resp.json
+
+
+# YubiKey Attributes
+
+
+def test_assign_yubikey_attributes():
+    app.post('/yubikeys/%s/attributes' % PREFIX_1,
+             {'key': 'attr1', 'value': 'val1'})
+    app.post('/yubikeys/%s/attributes' % PREFIX_1,
+             {'key': 'attr2', 'value': 'val2'})
+
+    resp = app.get('/yubikeys/%s/attributes' % PREFIX_1)
+    attributes = resp.json
+    assert attributes['attr1'] == 'val1'
+    assert attributes['attr2'] == 'val2'
+    assert len(attributes) == 2
+
+    resp = app.get('/yubikeys/%s' % PREFIX_1)
+    yubikey = resp.json
+    assert yubikey['attributes'] == attributes
+
+
+def test_read_yubikey_attribute():
+    resp = app.get('/yubikeys/%s/attributes/attr1' % PREFIX_1)
+    assert resp.json == 'val1'
+
+
+def test_read_missing_yubikey_attribute():
+    resp = app.get('/yubikeys/%s/attributes/foo' % PREFIX_1)
+    assert not resp.json
+
+
+def test_overwrite_yubikey_attributes():
+    app.post('/yubikeys/%s/attributes' % PREFIX_1,
+             {'key': 'attr1', 'value': 'newval'})
+    resp = app.get('/yubikeys/%s/attributes' % PREFIX_1)
+    attributes = resp.json
+
+    assert attributes['attr1'] == 'newval'
+    assert attributes['attr2'] == 'val2'
+    assert len(attributes) == 2
+
+
+def test_unset_yubikey_attributes():
+    app.post('/yubikeys/%s/attributes/attr1/delete' % PREFIX_1)
+    resp = app.get('/yubikeys/%s/attributes' % PREFIX_1)
+    attributes = resp.json
+
+    assert attributes['attr2'] == 'val2'
+    assert len(attributes) == 1
+
+    resp = app.get('/yubikeys/%s/attributes/attr1' % PREFIX_1)
     assert not resp.json
