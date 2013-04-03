@@ -152,10 +152,13 @@ class YubiAuth(object):
             return user_username_or_id
         else:
             query = self.session.query(User)
-            if isinstance(user_username_or_id, int):
-                return query.get(user_username_or_id)
-            else:
-                return query.filter(User.name == user_username_or_id).one()
+            try:
+                if isinstance(user_username_or_id, int):
+                    return query.get(user_username_or_id)
+                else:
+                    return query.filter(User.name == user_username_or_id).one()
+            except:
+                raise LookupError('User not found!')
 
     def get_yubikey(self, prefix):
         """

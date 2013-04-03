@@ -36,5 +36,5 @@ setup(
     packages=['yubiauth'],
     install_requires=['sqlalchemy', 'webobj', 'passlib', 'yubico', 'pyhsm'],
     test_suite="nose.collector",
-    tests_require=['Nose'],
+    tests_require=['Nose', 'WebTest'],
 )

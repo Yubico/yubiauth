@@ -40,7 +40,7 @@ ID_PATTERN = r'\d+'
 USERNAME_PATTERN = r'(?=.*[a-zA-Z])[-_a-zA-Z0-9]{3,}'
 PASSWORD_PATTERN = r'\S{3,}'
 YUBIKEY_PATTERN = r'[cbdefghijklnrtuv]{0,64}'
-ATTRIBUTE_KEY_PATTERN = r'[-_a-zA-Z]+'
+ATTRIBUTE_KEY_PATTERN = r'[-_a-zA-Z0-9]+'
 
 ID_RE = re.compile(r'^%s$' % ID_PATTERN)
 
@@ -81,7 +81,7 @@ class WebAPI(object):
     __routes__ = [
         Route(r'^users$', get='list_users', post='create_user'),
         Route(__user__ + r'$', get='show_user'),
-        Route(__user__ + r'/reset$', get='reset_password'),
+        Route(__user__ + r'/reset$', post='reset_password'),
         Route(__user__ + r'/delete$', post='delete_user'),
         Route(__user__ + r'/attributes$', get='list_attributes',
               post='set_attribute'),
@@ -127,9 +127,11 @@ class WebAPI(object):
         except KeyError:
             raise exc.HTTPBadRequest
 
-        user = self.auth.create_user(username, password)
-
-        return exc.HTTPSeeOther(location='/users/%d' % user.id)
+        try:
+            user = self.auth.create_user(username, password)
+            return exc.HTTPSeeOther(location='/users/%d' % user.id)
+        except:
+            raise exc.HTTPServerError
 
     def show_user(self, request, username_or_id):
         user = self._get_user(username_or_id)
@@ -145,22 +147,14 @@ class WebAPI(object):
         user.set_password(password)
         self.auth.commit()
 
-        return Response(json.dumps({
-            'status': True,
-            'action': 'reset_password',
-            'user': user.data
-        }))
+        raise exc.HTTPNoContent
 
     def delete_user(self, request, username_or_id):
         user = self._get_user(username_or_id)
         user.delete()
         self.auth.commit()
 
-        return Response(json.dumps({
-            'status': True,
-            'action': 'delete',
-            'user': user.data
-        }))
+        raise exc.HTTPNoContent
 
     # Attributes
 
@@ -185,14 +179,14 @@ class WebAPI(object):
         user.attributes[key] = value
         self.auth.commit()
 
-        return Response(json.dumps(True))
+        raise exc.HTTPNoContent
 
     def unset_attribute(self, request, username_or_id, attribute_key):
         user = self._get_user(username_or_id)
         del user.attributes[attribute_key]
         self.auth.commit()
 
-        return Response(json.dumps(True))
+        raise exc.HTTPNoContent
 
     # YubiKeys
 
@@ -202,7 +196,10 @@ class WebAPI(object):
 
     def show_yubikey(self, request, username_or_id, prefix):
         user = self._get_user(username_or_id)
-        return Response(json.dumps(user.yubikeys[prefix].data))
+        try:
+            return Response(json.dumps(user.yubikeys[prefix].data))
+        except KeyError:
+            raise exc.HTTPNotFound
 
     def bind_yubikey(self, request, username_or_id):
         user = self._get_user(username_or_id)
@@ -210,14 +207,14 @@ class WebAPI(object):
         user.assign_yubikey(prefix)
         self.auth.commit()
 
-        return Response(json.dumps(True))
+        raise exc.HTTPNoContent
 
     def unbind_yubikey(self, request, username_or_id, prefix):
         user = self._get_user(username_or_id)
         del user.yubikeys[prefix]
         self.auth.commit()
 
-        return Response(json.dumps(True))
+        raise exc.HTTPNoContent
 
     # Validate
 
@@ -255,10 +252,13 @@ class WebAPI(object):
 
         otp = request.params['otp'] if 'otp' in request.params else None
 
-        user = self.auth.authenticate(username, password, otp)
+        try:
+            user = self.auth.authenticate(username, password, otp)
+            if user:
+                return Response(json.dumps(user.data))
+        except:
+            pass
 
-        if user:
-            return Response(json.dumps(user.data))
         raise exc.HTTPUnauthorized
 
 

@@ -359,8 +359,8 @@ class YubiKey(AttributeHolder, Deletable, Base):
     @property
     def data(self):
         return {
+            'id': self.id,
             'prefix': self.prefix,
-            'owner': self.user_id,
             'enabled': self.enabled
         }
 
