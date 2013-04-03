@@ -1,4 +1,3 @@
-import json
 from webtest import TestApp
 from yubiauth.rest_api import application
 
@@ -12,7 +11,7 @@ def test_create_user():
     resp = app.post('/users', {'username': 'user1', 'password': 'foo'},
                     status=303)
     user_page = resp.follow()
-    user = json.loads(user_page.body)
+    user = user_page.json
     assert user['name'] == 'user1'
     assert user['id'] == 1
     app.post('/users', {'username': 'user2', 'password': 'bar'},
@@ -21,27 +20,27 @@ def test_create_user():
 
 def test_get_user_by_id():
     resp = app.get('/users/1', status=200)
-    user = json.loads(resp.body)
+    user = resp.json
     assert user['id'] == 1
     assert user['name'] == 'user1'
 
 
 def test_get_user_by_name():
     resp = app.get('/users/user1')
-    user = json.loads(resp.body)
+    user = resp.json
     assert user['id'] == 1
     assert user['name'] == 'user1'
 
 
 def test_authenticate_user_get():
     resp = app.get('/authenticate?username=user1&password=foo')
-    user = json.loads(resp.body)
+    user = resp.json
     assert user['name'] == 'user1'
 
 
 def test_authenticate_user_post():
     resp = app.post('/authenticate', {'username': 'user1', 'password': 'foo'})
-    user = json.loads(resp.body)
+    user = resp.json
     assert user['name'] == 'user1'
 
 
@@ -83,33 +82,33 @@ PREFIX_3 = 'cccccccccccf'
 
 def test_bind_yubikeys():
     resp = app.get('/users/1/yubikeys')
-    yubikeys = json.loads(resp.body)
+    yubikeys = resp.json
     assert len(yubikeys) == 0
 
     app.post('/users/1/yubikeys', {'yubikey': PREFIX_1})
     resp = app.get('/users/1/yubikeys')
-    yubikeys = json.loads(resp.body)
+    yubikeys = resp.json
     assert yubikeys == [PREFIX_1]
 
     app.post('/users/1/yubikeys', {'yubikey': PREFIX_2})
     app.post('/users/2/yubikeys', {'yubikey': PREFIX_2})
 
     resp = app.get('/users/1/yubikeys')
-    yubikeys = json.loads(resp.body)
+    yubikeys = resp.json
     assert sorted(yubikeys) == sorted([PREFIX_1, PREFIX_2])
 
     resp = app.get('/users/1')
-    user = json.loads(resp.body)
+    user = resp.json
     assert sorted(user['yubikeys']) == sorted([PREFIX_1, PREFIX_2])
 
     resp = app.get('/users/2')
-    user = json.loads(resp.body)
+    user = resp.json
     assert user['yubikeys'] == [PREFIX_2]
 
 
 def test_show_yubikey():
     resp = app.get('/users/1/yubikeys/%s' % PREFIX_1)
-    yubikey = json.loads(resp.body)
+    yubikey = resp.json
     assert yubikey['enabled']
     assert yubikey['prefix'] == PREFIX_1
 
@@ -121,7 +120,7 @@ def test_show_yubikey_for_wrong_user():
 def test_unbind_yubikeys():
     app.post('/users/1/yubikeys/%s/delete' % PREFIX_1)
     resp = app.get('/users/1/yubikeys')
-    yubikeys = json.loads(resp.body)
+    yubikeys = resp.json
     assert yubikeys == [PREFIX_2]
 
 
@@ -133,30 +132,30 @@ def test_assign_attributes():
     app.post('/users/1/attributes', {'key': 'attr2', 'value': 'val2'})
 
     resp = app.get('/users/1/attributes')
-    attributes = json.loads(resp.body)
+    attributes = resp.json
     assert attributes['attr1'] == 'val1'
     assert attributes['attr2'] == 'val2'
     assert len(attributes) == 2
 
     resp = app.get('/users/1')
-    user = json.loads(resp.body)
+    user = resp.json
     assert user['attributes'] == attributes
 
 
 def test_read_attribute():
     resp = app.get('/users/1/attributes/attr1')
-    assert json.loads(resp.body) == 'val1'
+    assert resp.json == 'val1'
 
 
 def test_read_missing_attribute():
     resp = app.get('/users/1/attributes/foo')
-    assert not json.loads(resp.body)
+    assert not resp.json
 
 
 def test_overwrite_attributes():
     app.post('/users/1/attributes', {'key': 'attr1', 'value': 'newval'})
     resp = app.get('/users/1/attributes')
-    attributes = json.loads(resp.body)
+    attributes = resp.json
 
     assert attributes['attr1'] == 'newval'
     assert attributes['attr2'] == 'val2'
@@ -166,10 +165,10 @@ def test_overwrite_attributes():
 def test_unset_attributes():
     app.post('/users/1/attributes/attr1/delete')
     resp = app.get('/users/1/attributes')
-    attributes = json.loads(resp.body)
+    attributes = resp.json
 
     assert attributes['attr2'] == 'val2'
     assert len(attributes) == 1
 
     resp = app.get('/users/1/attributes/attr1')
-    assert not json.loads(resp.body)
+    assert not resp.json

@@ -45,6 +45,10 @@ ATTRIBUTE_KEY_PATTERN = r'[-_a-zA-Z0-9]+'
 ID_RE = re.compile(r'^%s$' % ID_PATTERN)
 
 
+def json_response(data):
+    return Response(json.dumps(data), content_type='application/json')
+
+
 class Route(object):
     def __init__(self, pattern_str, controller=None, get=None, post=None):
         self.pattern = re.compile(pattern_str)
@@ -118,7 +122,7 @@ class WebAPI(object):
     # Users
 
     def list_users(self, request):
-        return Response(json.dumps(self.auth.query_users()))
+        return json_response(self.auth.query_users())
 
     def create_user(self, request):
         try:
@@ -135,7 +139,7 @@ class WebAPI(object):
 
     def show_user(self, request, username_or_id):
         user = self._get_user(username_or_id)
-        return Response(json.dumps(user.data))
+        return json_response(user.data)
 
     def reset_password(self, request, username_or_id):
         user = self._get_user(username_or_id)
@@ -160,13 +164,13 @@ class WebAPI(object):
 
     def list_attributes(self, request, username_or_id):
         user = self._get_user(username_or_id)
-        return Response(json.dumps(user.attributes.copy()))
+        return json_response(user.attributes.copy())
 
     def show_attribute(self, request, username_or_id, attribute_key):
         user = self._get_user(username_or_id)
         if attribute_key in user.attributes:
-            return Response(json.dumps(user.attributes[attribute_key]))
-        return Response(json.dumps(None))
+            return json_response(user.attributes[attribute_key])
+        return json_response(None)
 
     def set_attribute(self, request, username_or_id):
         user = self._get_user(username_or_id)
@@ -192,12 +196,12 @@ class WebAPI(object):
 
     def list_yubikeys(self, request, username_or_id):
         user = self._get_user(username_or_id)
-        return Response(json.dumps(user.yubikeys.keys()))
+        return json_response(user.yubikeys.keys())
 
     def show_yubikey(self, request, username_or_id, prefix):
         user = self._get_user(username_or_id)
         try:
-            return Response(json.dumps(user.yubikeys[prefix].data))
+            return json_response(user.yubikeys[prefix].data)
         except KeyError:
             raise exc.HTTPNotFound
 
@@ -237,11 +241,11 @@ class WebAPI(object):
         else:
             valid_otp = False
 
-        return Response(json.dumps({
+        return json_response({
             'user': user.data,
             'valid_password': valid_pass,
             'valid_otp': valid_otp
-        }))
+        })
 
     def authenticate(self, request):
         try:
@@ -255,7 +259,7 @@ class WebAPI(object):
         try:
             user = self.auth.authenticate(username, password, otp)
             if user:
-                return Response(json.dumps(user.data))
+                return json_response(user.data)
         except:
             pass
 
