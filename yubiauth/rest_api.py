@@ -50,16 +50,18 @@ def json_response(data):
 
 
 class Route(object):
-    def __init__(self, pattern_str, controller=None, get=None, post=None):
+    def __init__(self, pattern_str, controller=None, **kwargs):
         self.pattern = re.compile(pattern_str)
 
         if controller:
             self.get = controller
             self.post = controller
-        if get:
-            self.get = get
-        if post:
-            self.post = post
+        if 'get' in kwargs:
+            self.get = kwargs['get']
+        if 'post' in kwargs:
+            self.post = kwargs['post']
+        if 'delete' in kwargs:
+            self.delete = kwargs['delete']
 
     def get_controller(self, request):
         path = request.path[1:]
@@ -89,29 +91,33 @@ class WebAPI(object):
 
     __routes__ = [
         Route(r'^users$', get='list_users', post='create_user'),
-        Route(__user__ + r'$', get='show_user'),
+        Route(__user__ + r'$', get='show_user', delete='delete_user'),
         Route(__user__ + r'/reset$', post='reset_password'),
         Route(__user__ + r'/delete$', post='delete_user'),
         Route(__user__ + r'/attributes$', get='list_user_attributes',
               post='set_user_attribute'),
-        Route(__user_attribute__ + r'$', get='show_user_attribute'),
+        Route(__user_attribute__ + r'$', get='show_user_attribute',
+              delete='unset_user_attribute'),
         Route(__user_attribute__ + r'/delete$', post='unset_user_attribute'),
         Route(__user__ + r'/yubikeys$', get='list_yubikeys',
               post='bind_yubikey'),
 
-        Route(__user_yubikey__ + r'$', get='show_yubikey'),
+        Route(__user_yubikey__ + r'$', get='show_yubikey',
+              delete='unbind_yubikey'),
         Route(__user_yubikey__ + r'/delete$', post='unbind_yubikey'),
         Route(__user_yubikey__ + r'/attributes$',
               get='list_yubikey_attributes', post='set_yubikey_attribute'),
-        Route(__user_yubikey_attribute__ + r'$', get='show_yubikey_attribute'),
+        Route(__user_yubikey_attribute__ + r'$', get='show_yubikey_attribute',
+              delete='unset_yubikey_attribute'),
         Route(__user_yubikey_attribute__ + r'/delete$',
               post='unset_yubikey_attribute'),
 
-        Route(__yubikey__ + r'$', get='show_yubikey'),
+        Route(__yubikey__ + r'$', get='show_yubikey', delete='delete_yubikey'),
         Route(__yubikey__ + r'/delete$', post='delete_yubikey'),
         Route(__yubikey__ + r'/attributes$', get='list_yubikey_attributes',
               post='set_yubikey_attribute'),
-        Route(__yubikey_attribute__ + r'$', get='show_yubikey_attribute'),
+        Route(__yubikey_attribute__ + r'$', get='show_yubikey_attribute',
+              delete='unset_yubikey_attribute'),
         Route(__yubikey_attribute__ + r'/delete$',
               post='unset_yubikey_attribute'),
 

@@ -15,6 +15,34 @@ def test_create_user():
     assert user['id'] == 1
     app.post('/users', {'username': 'user2', 'password': 'bar'},
              status=303)
+    app.post('/users', {'username': 'user3', 'password': 'baz'},
+             status=303)
+
+    assert len(app.get('/users').json) == 3
+
+
+def test_delete_user_by_id():
+    id = app.post('/users', {'username': 'redshirt', 'password': 'llap'},
+                  status=303).follow().json['id']
+
+    app.delete('/users/%d' % id)
+    app.get('/users/%d' % id, status=404)
+
+
+def test_delete_user_by_name():
+    name = app.post('/users', {'username': 'redshirt', 'password': 'llap'},
+                    status=303).follow().json['name']
+
+    app.delete('/users/%s' % name.encode('ascii'))
+    app.get('/users/%s' % name, status=404)
+
+
+def test_delete_user_by_post():
+    id = app.post('/users', {'username': 'redshirt', 'password': 'llap'},
+                  status=303).follow().json['id']
+
+    app.post('/users/%d/delete' % id)
+    app.get('/users/%d' % id, status=404)
 
 
 def test_get_user_by_id():
@@ -117,7 +145,7 @@ def test_show_yubikey_for_wrong_user():
 
 
 def test_unbind_yubikeys():
-    app.post('/users/1/yubikeys/%s/delete' % PREFIX_1)
+    app.delete('/users/1/yubikeys/%s' % PREFIX_1)
     resp = app.get('/users/1/yubikeys')
     yubikeys = resp.json
     assert yubikeys == [PREFIX_2]
@@ -166,7 +194,7 @@ def test_overwrite_attributes():
 
 
 def test_unset_attributes():
-    app.post('/users/1/attributes/attr1/delete')
+    app.delete('/users/1/attributes/attr1')
     resp = app.get('/users/1/attributes')
     attributes = resp.json
 
@@ -188,7 +216,7 @@ def _basic_attribute_test(base_url):
         app.post(base_url, {'key': key, 'value': value})
         assert app.get('%s/%s' % (base_url, key)).json == value
 
-    app.post('%s/attr2/delete' % (base_url))
+    app.delete('%s/attr2' % (base_url))
     assert not app.get('%s/attr2' % base_url).json
 
     app.post(base_url, {'key': 'attr3', 'value': 'newval'})
