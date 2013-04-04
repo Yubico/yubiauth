@@ -45,11 +45,17 @@ from sqlalchemy.orm.collections import attribute_mapped_collection
 from sqlalchemy.ext.associationproxy import association_proxy
 
 from yubico.yubico import Yubico
+from passlib.context import CryptContext
+from passlib.registry import register_crypt_handler_path
+
+register_crypt_handler_path('yhsm_pbkdf2_sha1', 'yubiauth.yhsm')
+register_crypt_handler_path('yhsm_pbkdf2_sha256', 'yubiauth.yhsm')
+register_crypt_handler_path('yhsm_pbkdf2_sha512', 'yubiauth.yhsm')
 
 
 Base = declarative_base()
 
-pwd_context = settings['pwd_context']
+pwd_context = CryptContext(**settings['crypt_context'])
 yubico = Yubico('11004', '5Vm3Zp2mUTQHMo1DeG9tdojpc1Y=')
 
 
