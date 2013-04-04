@@ -63,5 +63,7 @@ except IOError, e:
     if not e.errno in [errno.ENOENT]:
         raise e
 
+#TODO: Parse dbconfig-common generated database configuration
+
 if isinstance(settings['yhsm_devices'], basestring):
     settings['yhsm_devices'] = {'main': settings['yhsm_devices']}
