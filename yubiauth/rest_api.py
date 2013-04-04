@@ -50,6 +50,12 @@ def json_response(data, **kwargs):
                     **kwargs)
 
 
+def json_error(message, **kwargs):
+    if not 'status' in kwargs:
+        kwargs['status'] = 400
+    return json_response({'error': message}, **kwargs)
+
+
 class Route(object):
     def __init__(self, pattern_str, controller=None, **kwargs):
         self.pattern = re.compile(pattern_str)
@@ -75,7 +81,8 @@ class Route(object):
                 controller = self.__getattribute__(request.method.lower())
                 return controller, match.groups()
             except AttributeError:
-                raise exc.HTTPMethodNotAllowed
+                return json_error('Method %s not allowed' % request.method,
+                                  status=405)
 
         return None, None
 
@@ -96,6 +103,7 @@ class WebAPI(object):
         Route(__user__ + r'$', get='show_user', delete='delete_user'),
         Route(__user__ + r'/reset$', post='reset_password'),
         Route(__user__ + r'/delete$', post='delete_user'),
+        Route(__user__ + r'/validate$', 'validate'),
         Route(__user__ + r'/attributes$', get='list_user_attributes',
               post='set_user_attribute'),
         Route(__user_attribute__ + r'$', get='show_user_attribute',
@@ -123,7 +131,6 @@ class WebAPI(object):
         Route(__yubikey_attribute__ + r'/delete$',
               post='unset_yubikey_attribute'),
 
-        Route(r'^validate$', 'validate'),
         Route(r'^authenticate$', 'authenticate')
     ]
 
@@ -181,13 +188,17 @@ class WebAPI(object):
             username = request.params['username']
             password = request.params['password']
         except KeyError:
-            raise exc.HTTPBadRequest
+            return json_error('Missing required parameter(s)')
 
         try:
             user = self.auth.create_user(username, password)
-            return exc.HTTPCreated(location='/users/%d' % user.id)
-        except:
-            raise exc.HTTPServerError
+            url = '/users/%d' % user.id
+            return json_response({
+                'id': user.id,
+                'name': user.name
+            }, location=url, status=201)
+        except Exception, e:
+            return json_error(e.message)
 
     def show_user(self, request, username_or_id):
         user = self._get_user(username_or_id)
@@ -198,7 +209,7 @@ class WebAPI(object):
         try:
             password = request.params['password']
         except KeyError:
-            raise exc.HTTPBadRequest
+            return json_error('Missing required parameter(s)')
 
         user.set_password(password)
         self.auth.commit()
@@ -242,7 +253,7 @@ class WebAPI(object):
             key = request.params['key']
             value = request.params['value']
         except KeyError:
-            raise exc.HTTPBadRequest
+            return json_error('Missing required parameter(s)')
 
         owner.attributes[key] = value
         self.auth.commit()
@@ -256,8 +267,9 @@ class WebAPI(object):
         return self._set_attribute(request, self._get_yubikey(*args))
 
     def _unset_attribute(self, owner, attribute_key):
-        del owner.attributes[attribute_key]
-        self.auth.commit()
+        if attribute_key in owner.attributes:
+            del owner.attributes[attribute_key]
+            self.auth.commit()
 
         raise exc.HTTPNoContent
 
@@ -304,12 +316,8 @@ class WebAPI(object):
 
     # Validate
 
-    def validate(self, request):
-        try:
-            username = request.params['username']
-        except KeyError:
-            raise exc.HTTPBadRequest
-        user = self.auth.get_user(username)
+    def validate(self, request, username_or_id):
+        user = self._get_user(username_or_id)
 
         if 'password' in request.params:
             password = request.params['password']
@@ -324,7 +332,6 @@ class WebAPI(object):
             valid_otp = False
 
         return json_response({
-            'user': user.data,
             'valid_password': valid_pass,
             'valid_otp': valid_otp
         })
@@ -334,7 +341,7 @@ class WebAPI(object):
             username = request.params['username']
             password = request.params['password']
         except KeyError:
-            raise exc.HTTPBadRequest
+            return json_error('Missing required parameter(s)')
 
         otp = request.params['otp'] if 'otp' in request.params else None
 

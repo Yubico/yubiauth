@@ -80,7 +80,7 @@ def test_reset_password():
 
 
 def test_create_user_with_existing_username():
-    app.post('/users', {'username': 'user1', 'password': 'bar'}, status=500)
+    app.post('/users', {'username': 'user1', 'password': 'bar'}, status=400)
 
 
 def test_authenticate_with_invalid_username():
