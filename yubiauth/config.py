@@ -33,8 +33,14 @@ __all__ = [
 
 import imp
 import errno
+import os
 import default_settings
 
+
+try:
+    SETTINGS_FILE = os.environ['YUBIAUTH_SETTINGS']
+except KeyError:
+    SETTINGS_FILE = '/etc/yubico/yubiauth/yubiauth'
 
 VALUES = {
     'DATABASE_CONFIGURATION': 'db',
@@ -56,8 +62,7 @@ def parse(conf, settings={}):
 settings = parse(default_settings)
 
 try:
-    user_settings = imp.load_source('user_settings',
-                                    '/etc/yubico/yubiauth/yubiauth')
+    user_settings = imp.load_source('user_settings', SETTINGS_FILE)
     settings = parse(user_settings, settings)
 except IOError, e:
     if not e.errno in [errno.ENOENT]:
