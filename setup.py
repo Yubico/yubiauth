@@ -33,6 +33,12 @@ from setuptools import setup
 setup(
     name='YubiAuth',
     version='0.1',
+    author='Dain Nilsson',
+    author_email='dain@yubico.com',
+    maintainer='Yubico Open Source Maintainers',
+    maintainer_email='ossmaint@yubico.com',
+    url='https://github.com/Yubico/yubiauth',
+    license='BSD 2 clause',
     packages=['yubiauth'],
     install_requires=['sqlalchemy', 'webobj', 'passlib', 'yubico', 'pyhsm'],
     test_suite="nose.collector",
