@@ -1,0 +1,4 @@
+include README
+include COPYING
+include NEWS
+include doc/*.md

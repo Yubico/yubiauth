@@ -50,4 +50,10 @@ setup(
     install_requires=['sqlalchemy', 'webob', 'passlib', 'yubico'],
     test_suite="nose.collector",
     tests_require=['WebTest', 'pyhsm'],
+    classifiers=[
+        'License :: OSI Approved :: BSD License',
+        'Operating System :: OS Independent',
+        'Programming Language :: Python',
+        'Development Status :: 2 - Pre-Alpha',
+    ]
 )
