@@ -45,7 +45,7 @@ except KeyError:
 VALUES = {
     'DATABASE_CONFIGURATION': 'db',
     'YKVAL_SERVERS': 'ykval',
-    'YHSM_DEVICES': 'yhsm_devices',
+    'YHSM_DEVICE': 'yhsm_device',
     'CRYPT_CONTEXT': 'crypt_context',
 }
 
@@ -70,5 +70,5 @@ except IOError, e:
 
 #TODO: Parse dbconfig-common generated database configuration
 
-if isinstance(settings['yhsm_devices'], basestring):
-    settings['yhsm_devices'] = {'main': settings['yhsm_devices']}
+if not 'YHSM_DEVICE' in os.environ and 'yhsm_device' in settings:
+    os.environ['YHSM_DEVICE'] = settings['yhsm_device']

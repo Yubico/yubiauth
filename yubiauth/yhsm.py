@@ -33,6 +33,7 @@ __all__ = [
     'yhsm_pbkdf2_sha512'
 ]
 
+import os
 from passlib.utils import (to_hash_str, to_unicode, adapted_b64_decode,
                            adapted_b64_encode)
 from passlib.hash import pbkdf2_sha1, pbkdf2_sha256, pbkdf2_sha512
@@ -40,20 +41,15 @@ from passlib.hash import pbkdf2_sha1, pbkdf2_sha256, pbkdf2_sha512
 from pyhsm.base import YHSM
 from pyhsm.util import key_handle_to_int
 
-from config import settings
-
 _UDOLLAR = u'$'
-_UHSM = u'hsm='
 _UKH = u'kh='
-_UDEFAULT_HSM = u'main'
 _UDEFAULT_KH = u'1'
-_UDEFAULT_DEVICE = u'/dev/ttyACM0'
+
+DEFAULT_DEVICE = '/dev/ttyACM0'
 
 
-def _yhsm__init__(base, self, hsm=_UDEFAULT_HSM,
-                  key_handle=_UDEFAULT_KH, **kwds):
+def _yhsm__init__(base, self, key_handle=_UDEFAULT_KH, **kwds):
     super(base, self).__init__(**kwds)
-    self.hsm = hsm
     self.key_handle = key_handle
 
 
@@ -66,12 +62,6 @@ def _yhsmfrom_string(base, cls, hash):
         raise ValueError('invalid %s hash' % (cls.name))
 
     hash = hash[len(cls.ident):]
-
-    if hash.startswith(_UHSM):
-        part, hash = hash.split(_UDOLLAR, 1)
-        hsm = part[len(_UHSM):]
-    else:
-        hsm = _UDEFAULT_HSM
 
     if hash.startswith(_UKH):
         part, hash = hash.split(_UDOLLAR, 1)
@@ -88,7 +78,6 @@ def _yhsmfrom_string(base, cls, hash):
             params[kwd] = inner.__getattribute__(kwd)
         except AttributeError:
             pass
-    params['hsm'] = hsm
     params['key_handle'] = key_handle
     params['checksum'] = adapted_b64_decode(chk.encode('ascii'))
 
@@ -98,12 +87,7 @@ def _yhsmfrom_string(base, cls, hash):
 def _yhsmto_string(base, self):
     hash = self.ident
 
-    if self.hsm != _UDEFAULT_HSM:
-        hash += "%s%s$" % (_UHSM, self.hsm)
-
     inner_str = super(base, self).to_string()
-    print inner_str
-
     inner_str = inner_str[len(self.ident):].rsplit('$', 1)[0]
 
     chk = adapted_b64_encode(self.checksum).decode('ascii')
@@ -120,7 +104,12 @@ def _yhsmto_string(base, self):
 
 def _yhsmcalc_checksum(base, self, secret):
     base_chk = super(base, self).calc_checksum(secret)
-    hsm = YHSM(device=settings['yhsm_devices'][self.hsm])
+
+    device = DEFAULT_DEVICE
+    if 'YHSM_DEVICE' in os.environ:
+        device = os.environ['YHSM_DEVICE']
+
+    hsm = YHSM(device=device)
     result = hsm.hmac_sha1(key_handle_to_int(self.key_handle), base_chk)
 
     return result.result.hash_result
@@ -132,7 +121,7 @@ def _make_yhsm_handler(base, base_name):
     return type(name, (base,), dict(
         name=name,
         ident=ident,
-        setting_kwds=('hsm', 'key_handle') + base.setting_kwds,
+        setting_kwds=('key_handle',) + base.setting_kwds,
         checksum_size=20,
         __init__=lambda *args, **kwargs: _yhsm__init__(base, *args, **kwargs),
         from_string=classmethod(lambda *args, **kwargs: _yhsmfrom_string(

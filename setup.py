@@ -33,7 +33,7 @@ import sys
 import os
 
 #Don't load custom settings when running tests
-if 'test' in sys.argv:
+if 'test' in sys.argv or 'nosetests' in sys.argv:
     os.environ['YUBIAUTH_SETTINGS'] = '/dev/null'
 
 setup(
@@ -46,7 +46,8 @@ setup(
     url='https://github.com/Yubico/yubiauth',
     license='BSD 2 clause',
     packages=['yubiauth'],
-    install_requires=['sqlalchemy', 'webob', 'passlib', 'yubico', 'pyhsm'],
+    setup_requires=['nose>=1.0'],
+    install_requires=['sqlalchemy', 'webob', 'passlib', 'yubico'],
     test_suite="nose.collector",
-    tests_require=['Nose', 'WebTest'],
+    tests_require=['WebTest', 'pyhsm'],
 )
