@@ -49,5 +49,19 @@ gpg --verify dist/$tagname.tar.gz.sig
 
 git tag -u $keyid -m $tagname $tagname
 
+#Publish release
+if test ! -d $YUBICO_GITHUB_REPO; then
+	echo "warn: YUBICO_GITHUB_REPO not set or invalid!"
+	echo "      This release will not be published!"
+else
+	cp dist/$tagname.tar.gz* $YUBICO_GITHUB_REPO/yubiauth/releases/
+	cd $YUBICO_GITHUB_REPO/yubiauth
+	versions=$(ls -1v releases/*.tar.gz | sed 's/.\{1,\}-\(.\{1,\}\)\.tar\.gz/\1/' \
+		| paste -sd ',' - | sed 's/,/, /g' | sed 's/\([0-9.]\{1,\}\)/"\1"/g')
+	sed -i -e "2s/\[.*\]/[$versions]/" releases.html
+	git add releases/$tagname.tar.gz*
+	git add releases.html
+	git commit -m $tagname
+fi
+
 echo "Done! Don't forget to git push && git push --tags"
-ls -l dist/$tagname.tar.gz*
