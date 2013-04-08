@@ -62,6 +62,7 @@ else
 	git add releases/$tagname.tar.gz*
 	git add releases.html
 	git commit -m $tagname
+	git push
 fi
 
 echo "Done! Don't forget to git push && git push --tags"
