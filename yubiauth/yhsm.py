@@ -84,6 +84,15 @@ def _yhsmfrom_string(base, cls, hash):
     return cls(**params)
 
 
+def _yhsm_hash_needs_update(base, cls, hash, **opts):
+    key = 'deprecated_key_handles'
+    if key in opts:
+        for kh in opts[key].split(','):
+            if 'kh=%s' % kh in hash:
+                return True
+    return False
+
+
 def _yhsmto_string(base, self):
     hash = self.ident
 
@@ -126,10 +135,13 @@ def _make_yhsm_handler(base, base_name):
         __init__=lambda *args, **kwargs: _yhsm__init__(base, *args, **kwargs),
         from_string=classmethod(lambda *args, **kwargs: _yhsmfrom_string(
             base, *args, **kwargs)),
+        _hash_needs_update=classmethod(lambda *args, **kwargs:
+                                       _yhsm_hash_needs_update(
+                                           base, *args, **kwargs)),
         to_string=lambda *args, **kwargs: _yhsmto_string(
             base, *args, **kwargs),
-        calc_checksum=lambda *
-        args, **kwargs: _yhsmcalc_checksum(base, *args, **kwargs)
+        calc_checksum=lambda *args, **kwargs: _yhsmcalc_checksum(base, *args,
+                                                                 **kwargs)
     ))
 
 
