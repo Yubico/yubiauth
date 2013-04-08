@@ -37,7 +37,7 @@ if 'test' in sys.argv or 'nosetests' in sys.argv:
     os.environ['YUBIAUTH_SETTINGS'] = '/dev/null'
 
 setup(
-    name='YubiAuth',
+    name='yubiauth',
     version='0.1',
     author='Dain Nilsson',
     author_email='dain@yubico.com',
