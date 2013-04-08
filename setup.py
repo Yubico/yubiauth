@@ -55,5 +55,12 @@ setup(
         'Operating System :: OS Independent',
         'Programming Language :: Python',
         'Development Status :: 2 - Pre-Alpha',
+        'Environment :: Web Environment',
+        'Intended Audience :: Developers',
+        'Intended Audience :: System Administrators',
+        'Topic :: Security :: Cryptography',
+        'Topic :: Internet :: WWW/HTTP',
+        'Topic :: Internet :: WWW/HTTP :: WSGI :: Application',
+        'Topic :: Software Development :: Libraries :: Python Modules'
     ]
 )
