@@ -1,3 +1,7 @@
+* Version 0.1.2 (unreleased)
+
+  * Prevent writing compiled version of the settings file.
+
 * Version 0.1.1 (released 2013-04-09)
 
   * Added REST_PATH setting.
