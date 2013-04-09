@@ -40,7 +40,7 @@ import default_settings
 try:
     SETTINGS_FILE = os.environ['YUBIAUTH_SETTINGS']
 except KeyError:
-    SETTINGS_FILE = '/etc/yubico/yubiauth/yubiauth'
+    SETTINGS_FILE = '/etc/yubico/yubiauth/yubiauth.conf'
 
 VALUES = {
     'DATABASE_CONFIGURATION': 'db',
@@ -68,8 +68,6 @@ try:
 except IOError, e:
     if not e.errno in [errno.ENOENT]:
         raise e
-
-#TODO: Parse dbconfig-common generated database configuration
 
 settings['rest_path'] = settings['rest_path'].strip('/')
 
