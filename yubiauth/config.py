@@ -31,6 +31,7 @@ __all__ = [
     'settings'
 ]
 
+import sys
 import imp
 import errno
 import os
@@ -62,12 +63,16 @@ def parse(conf, settings={}):
 
 settings = parse(default_settings)
 
+dont_write_bytecode = sys.dont_write_bytecode
 try:
+    sys.dont_write_bytecode = True
     user_settings = imp.load_source('user_settings', SETTINGS_FILE)
     settings = parse(user_settings, settings)
 except IOError, e:
     if not e.errno in [errno.ENOENT]:
         raise e
+finally:
+    sys.dont_write_bytecode = dont_write_bytecode
 
 settings['rest_path'] = settings['rest_path'].strip('/')
 
