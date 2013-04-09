@@ -1,4 +1,8 @@
-* Version 0.2 (unreleased)
+* Version 0.1.1 (released 2013-04-09)
+
+  * Added REST_PATH setting.
+
+  * Renamed configuration file to /etc/yubico/yubiauth/yubiauth.conf
 
 * Version 0.1 (released 2013-04-08)
 
