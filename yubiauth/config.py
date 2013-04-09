@@ -47,6 +47,7 @@ VALUES = {
     'YKVAL_SERVERS': 'ykval',
     'YHSM_DEVICE': 'yhsm_device',
     'CRYPT_CONTEXT': 'crypt_context',
+    'REST_PATH': 'rest_path',
 }
 
 
@@ -69,6 +70,8 @@ except IOError, e:
         raise e
 
 #TODO: Parse dbconfig-common generated database configuration
+
+settings['rest_path'] = settings['rest_path'].strip('/')
 
 if not 'YHSM_DEVICE' in os.environ and 'yhsm_device' in settings:
     os.environ['YHSM_DEVICE'] = settings['yhsm_device']

@@ -32,7 +32,7 @@ from wsgiref.simple_server import make_server
 from webob import exc, Response
 from webob.dec import wsgify
 
-from yubi_auth import YubiAuth
+from yubiauth import YubiAuth, settings
 import json
 import re
 
@@ -43,6 +43,8 @@ YUBIKEY_PATTERN = r'[cbdefghijklnrtuv]{0,64}'
 ATTRIBUTE_KEY_PATTERN = r'[-_a-zA-Z0-9]+'
 
 ID_RE = re.compile(r'^%s$' % ID_PATTERN)
+
+BASE_PATH = '/%s' % settings['rest_path']
 
 
 def json_response(data, **kwargs):
@@ -71,7 +73,7 @@ class Route(object):
             self.delete = kwargs['delete']
 
     def get_controller(self, request):
-        path = request.path[1:]
+        path = request.path[len(BASE_PATH) + 1:]
         if path.endswith('/'):
             path = path[:-1]
         match = self.pattern.match(path)
@@ -98,7 +100,7 @@ class WebAPI(object):
         ATTRIBUTE_KEY_PATTERN
 
     __routes__ = [
-        Route(r'user$', 'find_user'),
+        Route(r'^user$', 'find_user'),
         Route(r'^users$', get='list_users', post='create_user'),
         Route(__user__ + r'$', get='show_user', delete='delete_user'),
         Route(__user__ + r'/reset$', post='reset_password'),
@@ -136,7 +138,11 @@ class WebAPI(object):
 
     @wsgify
     def __call__(self, request):
+        print request.script_name
         self.auth = YubiAuth()
+
+        if not request.path.startswith(BASE_PATH):
+            raise exc.HTTPNotFound
 
         for route in self.__routes__:
             controller, args = route.get_controller(request)
@@ -192,7 +198,7 @@ class WebAPI(object):
 
         try:
             user = self.auth.create_user(username, password)
-            url = '/users/%d' % user.id
+            url = '%s/users/%d' % (BASE_PATH, user.id)
             return json_response({
                 'id': user.id,
                 'name': user.name
