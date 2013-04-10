@@ -32,9 +32,13 @@ from setuptools import setup
 import sys
 import os
 
+tests_require=['WebTest']
+
 #Don't load custom settings when running tests
 if 'test' in sys.argv or 'nosetests' in sys.argv:
     os.environ['YUBIAUTH_SETTINGS'] = '/dev/null'
+    if 'hsm' in sys.argv:
+        tests_require.append('pyhsm')
 
 setup(
     name='yubiauth',
@@ -49,7 +53,7 @@ setup(
     setup_requires=['nose>=1.0'],
     install_requires=['sqlalchemy', 'webob', 'passlib', 'yubico'],
     test_suite="nose.collector",
-    tests_require=['WebTest', 'pyhsm'],
+    tests_require=tests_require,
     classifiers=[
         'License :: OSI Approved :: BSD License',
         'Operating System :: OS Independent',
