@@ -34,8 +34,8 @@ __all__ = [
 ]
 
 import os
-from passlib.utils import (to_hash_str, to_unicode, adapted_b64_decode,
-                           adapted_b64_encode)
+from base64 import b64encode, b64decode
+from passlib.utils import (to_hash_str, to_unicode)
 from passlib.hash import pbkdf2_sha1, pbkdf2_sha256, pbkdf2_sha512
 
 from pyhsm.base import YHSM
@@ -79,7 +79,7 @@ def _yhsmfrom_string(base, cls, hash):
         except AttributeError:
             pass
     params['key_handle'] = key_handle
-    params['checksum'] = adapted_b64_decode(chk.encode('ascii'))
+    params['checksum'] = b64decode(chk.encode('ascii'))
 
     return cls(**params)
 
@@ -99,7 +99,7 @@ def _yhsmto_string(base, self):
     inner_str = super(base, self).to_string()
     inner_str = inner_str[len(self.ident):].rsplit('$', 1)[0]
 
-    chk = adapted_b64_encode(self.checksum).decode('ascii')
+    chk = b64encode(self.checksum).decode('ascii')
 
     hash += u'%s%s$%s$%s' % (
         _UKH,
