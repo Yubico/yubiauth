@@ -7,3 +7,5 @@ python:
 install: "pip install -q -e . --use-mirrors"
 # # command to run tests
 script: nosetests
+git:
+  submodules: false
