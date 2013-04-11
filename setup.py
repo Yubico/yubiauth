@@ -51,7 +51,7 @@ setup(
     license='BSD 2 clause',
     packages=['yubiauth'],
     setup_requires=['nose>=1.0'],
-    install_requires=['sqlalchemy', 'webob', 'passlib', 'yubico'],
+    install_requires=['sqlalchemy', 'webob', 'passlib', 'yubico-client'],
     test_suite="nose.collector",
     tests_require=tests_require,
     classifiers=[
