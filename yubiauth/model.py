@@ -388,6 +388,4 @@ def create_db(engine):
 
 
 engine = create_engine(settings['db'], echo=False)
-# TODO: Remove this, add a utility to create the tables.
-create_db(engine)
 Session = sessionmaker(bind=engine)

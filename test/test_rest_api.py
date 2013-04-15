@@ -1,5 +1,8 @@
 from webtest import TestApp
+from yubiauth.model import engine, create_db
 from yubiauth.rest_api import application
+
+create_db(engine)
 
 app = TestApp(application)
 
