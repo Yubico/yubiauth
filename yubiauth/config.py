@@ -38,10 +38,8 @@ import os
 import default_settings
 
 
-try:
-    SETTINGS_FILE = os.environ['YUBIAUTH_SETTINGS']
-except KeyError:
-    SETTINGS_FILE = '/etc/yubico/yubiauth/yubiauth.conf'
+SETTINGS_FILE = os.getenv('YUBIAUTH_SETTINGS',
+                          '/etc/yubico/yubiauth/yubiauth.conf')
 
 VALUES = {
     'DATABASE_CONFIGURATION': 'db',
