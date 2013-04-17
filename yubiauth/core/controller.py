@@ -28,7 +28,8 @@
 #
 
 from yubiauth.util.controller import Controller
-from yubiauth.core.model import Session, User, YubiKey, AttributeAssociation
+from yubiauth.util.model import Session
+from yubiauth.core.model import User, YubiKey, AttributeAssociation
 
 __all__ = [
     'YubiAuth'

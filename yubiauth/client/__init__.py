@@ -31,4 +31,7 @@ __all__ = [
     'model',
     'controller',
     'rest',
+    'Client'
 ]
+
+from yubiauth.client.controller import Client

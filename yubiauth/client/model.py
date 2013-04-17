@@ -26,24 +26,130 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
-from sqlalchemy import (func, Sequence, Column, Boolean, Integer,
-                        String, ForeignKey, DateTime, UniqueConstraint, Table)
-from sqlalchemy.ext.declarative import declarative_base, declared_attr
-from sqlalchemy.orm import relationship, backref
-from sqlalchemy.orm.collections import attribute_mapped_collection
-from sqlalchemy.ext.associationproxy import association_proxy
 
-from yubiauth.util.model import Deletable, Session
+__all__ = [
+    'UserSession'
+]
+
+from sqlalchemy import (func, Sequence, Column, Boolean, Integer,
+                        String, DateTime)
+from sqlalchemy.ext.declarative import declarative_base
+
+from datetime import datetime
+import re
+import uuid
+import base64
+
+from yubiauth.util.model import Deletable
 
 Base = declarative_base()
 
 
-class Session(Deletable, Base):
-    __tablename__ = 'sessions'
+class UserSession(Deletable, Base):
+    __tablename__ = 'user_sessions'
 
-    id = Column(Integer, Sequence('session_id_seq'), primary_key=True)
+    id = Column(Integer, Sequence('user_session_id_seq'), primary_key=True)
     sessionId = Column(String(64), nullable=False, unique=True)
     username = Column(String(32), nullable=False)
     yubikey_prefix = Column(String(32))
     created_at = Column(DateTime, default=func.now())
     last_used = Column(DateTime, default=func.now())
+
+    def __init__(self, username, prefix=None):
+        self.sessionId = base64.encodestring(uuid.uuid4().get_bytes())
+        self.username = username
+        self.yubikey_prefix = prefix
+
+    def is_expired(self):
+        return False
+
+    def update_used(self):
+        self.last_used = datetime.now()
+
+    @property
+    def data(self):
+        return {
+            'sessionId': self.sessionId,
+            'username': self.username,
+            'yubikey_prefix': self.yubikey_prefix,
+            'created_at': self.created_at,
+            'last_used': self.last_used
+        }
+
+    def __repr__(self):
+        return (
+            "UserSession(sessionId: '%s', username: '%s')" %
+            (self.sessionId, self.username)
+        ).encode('utf-8')
+
+
+PERMS = {
+    'ALL': 1,
+    'USER': 2,
+    'ADMIN': 3
+}
+
+
+def clamp_perms(view_perms, edit_perms):
+    if view_perms and not view_perms in PERMS:
+        raise ValueError("Invalid value for view_perms: '%d'" % view_perms)
+    if edit_perms and not edit_perms in PERMS:
+        raise ValueError("Invalid value for edit_perms: '%d'" % view_perms)
+    if view_perms > edit_perms:
+        if edit_perms:
+            raise ValueError("view_perms > edit_perms")
+        edit_perms = view_perms
+
+    return view_perms, edit_perms
+
+
+class AttributeType(Deletable, Base):
+    __tablename__ = 'attribute_types'
+
+    id = Column(Integer, Sequence('attribute_type_id_seq'), primary_key=True)
+    name = Column(String(32), unique=True, nullable=False)
+    pattern = Column(String(128), nullable=False, default='.*')
+    required = Column(Boolean, default=False)
+    view_perms = Column(Integer, default=PERMS['ADMIN'])
+    edit_perms = Column(Integer, default=PERMS['ADMIN'])
+
+    def __init__(self, name, pattern=None, required=False, view_perms=0,
+                 edit_perms=0):
+        view_perms, edit_perms = clamp_perms(view_perms, edit_perms)
+
+        self.type = type
+        self.name = name
+        if pattern:
+            self.pattern = pattern
+        self.required = required
+        if view_perms:
+            self.view_perms = view_perms
+        if edit_perms:
+            self.edit_perms = edit_perms
+
+    def validate(self, value):
+        if not value and self.required:
+            return False
+        regex = re.compile(self.pattern)
+        return bool(regex.match(value))
+
+    @property
+    def attribute_key(self):
+        #TODO: normalize name
+        return '__%s' % self.name
+
+    @property
+    def data(self):
+        return {
+            'name': self.name,
+            'pattern': self.pattern,
+            'required': self.required,
+            'view_perms': self.view_perms,
+            'edit_perms': self.edit_perms
+        }
+
+    def __repr__(self):
+        return (
+            "AttributeType(name: '%s', pattern: '%s')" %
+            (self.name, self.pattern)
+        ).encode('utf-8')
