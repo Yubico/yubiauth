@@ -28,10 +28,29 @@
 #
 
 __all__ = [
-    'YubiAuth',
-    'model',
-    'settings',
+    'Controller'
 ]
 
-from config import settings
-from yubiauth.core.controller import YubiAuth
+from sqlalchemy.exc import IntegrityError
+
+
+class Controller(object):
+    def __init__(self, create_session):
+        self.session = create_session()
+
+    def __del__(self):
+        self.session.close()
+
+    def commit(self):
+        """
+        Commits any unchanged modifications to the database.
+
+        @return: True if successful, False on error
+        @rtype: bool
+        """
+        try:
+            self.session.commit()
+            return True
+        except IntegrityError:
+            self.session.rollback()
+            return False

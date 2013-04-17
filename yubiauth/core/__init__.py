@@ -28,10 +28,10 @@
 #
 
 __all__ = [
-    'YubiAuth',
     'model',
-    'settings',
+    'controller',
+    'rest',
+    'YubiAuth'
 ]
 
-from config import settings
-from yubiauth.core.controller import YubiAuth
+from controller import YubiAuth

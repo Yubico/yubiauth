@@ -27,38 +27,20 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 
-from sqlalchemy.exc import IntegrityError
-
-from model import Session, User, YubiKey, AttributeAssociation
+from yubiauth.util.controller import Controller
+from yubiauth.core.model import Session, User, YubiKey, AttributeAssociation
 
 __all__ = [
     'YubiAuth'
 ]
 
 
-class YubiAuth(object):
+class YubiAuth(Controller):
     """
     Main class for interacting with the YubiAuth backend.
     """
     def __init__(self, create_session=Session):
-        self.session = create_session()
-
-    def __del__(self):
-        self.session.close()
-
-    def commit(self):
-        """
-        Commits any unchanged modifications to the database.
-
-        @return: True if successful, False on error
-        @rtype: bool
-        """
-        try:
-            self.session.commit()
-            return True
-        except IntegrityError:
-            self.session.rollback()
-            return False
+        super(YubiAuth, self).__init__(create_session)
 
     def query_users(self, **kwargs):
         """

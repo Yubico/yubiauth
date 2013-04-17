@@ -1,8 +1,8 @@
 from nose import with_setup
 from nose.tools import raises
 
-from yubiauth.model import create_db
-from yubiauth import YubiAuth
+from yubiauth.core.model import create_db
+from yubiauth.core import YubiAuth
 
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker

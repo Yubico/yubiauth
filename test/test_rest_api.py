@@ -1,6 +1,6 @@
 from webtest import TestApp
-from yubiauth.model import engine, create_db
-from yubiauth.rest_api import application
+from yubiauth.core.model import engine, create_db
+from yubiauth.core.rest import application
 
 create_db(engine)
 

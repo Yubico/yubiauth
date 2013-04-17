@@ -30,10 +30,11 @@
 
 from wsgiref.simple_server import make_server
 from webob import exc
-
-from yubiauth import YubiAuth, settings
-from yubiauth.rest_common import REST_API, Route, json_response, json_error
 import re
+
+from yubiauth import settings
+from yubiauth.core import YubiAuth
+from yubiauth.util.rest import REST_API, Route, json_response, json_error
 
 ID_PATTERN = r'\d+'
 USERNAME_PATTERN = r'(?=.*[a-zA-Z])[-_a-zA-Z0-9]{3,}'

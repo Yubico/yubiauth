@@ -34,7 +34,7 @@ __all__ = [
 ]
 
 from UserDict import DictMixin
-from config import settings
+from yubiauth.config import settings
 
 from sqlalchemy import (create_engine, Sequence, Column, Boolean, Integer,
                         String, ForeignKey, UniqueConstraint, Table)
@@ -388,5 +388,4 @@ def create_db(engine):
 
 
 engine = create_engine(settings['db'], echo=False)
-create_db(engine)
 Session = sessionmaker(bind=engine)
