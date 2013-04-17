@@ -45,7 +45,9 @@ _UDOLLAR = u'$'
 _UKH = u'kh='
 _UDEFAULT_KH = u'1'
 
-DEFAULT_DEVICE = '/dev/ttyACM0'
+DEFAULT_DEVICE = 'daemon://localhost:5348'
+
+hsm = YHSM(device=os.getenv('YHSM_DEVICE', DEFAULT_DEVICE))
 
 
 def _yhsm__init__(base, self, key_handle=_UDEFAULT_KH, **kwds):
@@ -113,12 +115,6 @@ def _yhsmto_string(base, self):
 
 def _yhsmcalc_checksum(base, self, secret):
     base_chk = super(base, self).calc_checksum(secret)
-
-    device = DEFAULT_DEVICE
-    if 'YHSM_DEVICE' in os.environ:
-        device = os.environ['YHSM_DEVICE']
-
-    hsm = YHSM(device=device)
     result = hsm.hmac_sha1(key_handle_to_int(self.key_handle), base_chk)
 
     return result.result.hash_result

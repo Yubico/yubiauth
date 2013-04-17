@@ -1,4 +1,3 @@
-#!/usr/bin/python
 #
 # Copyright (c) 2013 Yubico AB
 # All rights reserved.
@@ -48,9 +47,10 @@ from yubico_client import Yubico
 from passlib.context import CryptContext
 from passlib.registry import register_crypt_handler_path
 
-register_crypt_handler_path('yhsm_pbkdf2_sha1', 'yubiauth.yhsm')
-register_crypt_handler_path('yhsm_pbkdf2_sha256', 'yubiauth.yhsm')
-register_crypt_handler_path('yhsm_pbkdf2_sha512', 'yubiauth.yhsm')
+if settings['use_hsm']:
+    register_crypt_handler_path('yhsm_pbkdf2_sha1', 'yubiauth.yhsm')
+    register_crypt_handler_path('yhsm_pbkdf2_sha256', 'yubiauth.yhsm')
+    register_crypt_handler_path('yhsm_pbkdf2_sha512', 'yubiauth.yhsm')
 
 
 Base = declarative_base()
@@ -388,4 +388,5 @@ def create_db(engine):
 
 
 engine = create_engine(settings['db'], echo=False)
+create_db(engine)
 Session = sessionmaker(bind=engine)

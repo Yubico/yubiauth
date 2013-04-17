@@ -29,11 +29,10 @@
 #
 
 from wsgiref.simple_server import make_server
-from webob import exc, Response
-from webob.dec import wsgify
+from webob import exc
 
 from yubiauth import YubiAuth, settings
-import json
+from yubiauth.rest_common import REST_API, Route, json_response, json_error
 import re
 
 ID_PATTERN = r'\d+'
@@ -44,52 +43,10 @@ ATTRIBUTE_KEY_PATTERN = r'[-_a-zA-Z0-9]+'
 
 ID_RE = re.compile(r'^%s$' % ID_PATTERN)
 
-BASE_PATH = '/%s' % settings['rest_path']
 
+class CoreAPI(REST_API):
+    __base_path__ = '/%s' % settings['rest_path']
 
-def json_response(data, **kwargs):
-    return Response(json.dumps(data), content_type='application/json',
-                    **kwargs)
-
-
-def json_error(message, **kwargs):
-    if not 'status' in kwargs:
-        kwargs['status'] = 400
-    return json_response({'error': message}, **kwargs)
-
-
-class Route(object):
-    def __init__(self, pattern_str, controller=None, **kwargs):
-        self.pattern = re.compile(pattern_str)
-
-        if controller:
-            self.get = controller
-            self.post = controller
-        if 'get' in kwargs:
-            self.get = kwargs['get']
-        if 'post' in kwargs:
-            self.post = kwargs['post']
-        if 'delete' in kwargs:
-            self.delete = kwargs['delete']
-
-    def get_controller(self, request):
-        path = request.path[len(BASE_PATH) + 1:]
-        if path.endswith('/'):
-            path = path[:-1]
-        match = self.pattern.match(path)
-
-        if match:
-            try:
-                controller = self.__getattribute__(request.method.lower())
-                return controller, match.groups()
-            except AttributeError:
-                return json_error('Method %s not allowed' % request.method,
-                                  status=405)
-
-        return None, None
-
-
-class WebAPI(object):
     __user__ = r'^users/(%s|%s)' % (ID_PATTERN, USERNAME_PATTERN)
     __user_attribute__ = __user__ + r'/attributes/(%s)' % ATTRIBUTE_KEY_PATTERN
     __user_yubikey__ = __user__ + r'/yubikeys/(%s)' % YUBIKEY_PATTERN
@@ -136,20 +93,8 @@ class WebAPI(object):
         Route(r'^authenticate$', 'authenticate')
     ]
 
-    @wsgify
-    def __call__(self, request):
-        print request.script_name
+    def _call_setup(self, request):
         self.auth = YubiAuth()
-
-        if not request.path.startswith(BASE_PATH):
-            raise exc.HTTPNotFound
-
-        for route in self.__routes__:
-            controller, args = route.get_controller(request)
-            if controller:
-                return self.__getattribute__(controller)(request, *args)
-
-        raise exc.HTTPNotFound
 
     def _get_user(self, username_or_id):
         if ID_RE.match(username_or_id):
@@ -198,7 +143,7 @@ class WebAPI(object):
 
         try:
             user = self.auth.create_user(username, password)
-            url = '%s/users/%d' % (BASE_PATH, user.id)
+            url = '%s/users/%d' % (self.__base_path__, user.id)
             return json_response({
                 'id': user.id,
                 'name': user.name
@@ -361,7 +306,7 @@ class WebAPI(object):
         raise exc.HTTPUnauthorized
 
 
-application = WebAPI()
+application = CoreAPI()
 
 if __name__ == '__main__':
     httpd = make_server('localhost', 8080, application)

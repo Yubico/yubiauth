@@ -26,55 +26,37 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
-
-__all__ = [
-    'settings'
-]
-
-import sys
-import imp
-import errno
-import os
-import default_settings
+from sqlalchemy import (create_engine, Sequence, Column, Boolean, Integer,
+                        String, ForeignKey, DateTime, UniqueConstraint, Table)
+from sqlalchemy.ext.declarative import declarative_base, declared_attr
+from sqlalchemy.orm import sessionmaker, relationship, backref
+from sqlalchemy.orm.collections import attribute_mapped_collection
+from sqlalchemy.ext.associationproxy import association_proxy
 
 
-SETTINGS_FILE = os.getenv('YUBIAUTH_SETTINGS',
-                          '/etc/yubico/yubiauth/yubiauth.conf')
-
-VALUES = {
-    'DATABASE_CONFIGURATION': 'db',
-    'YKVAL_SERVERS': 'ykval',
-    'USE_HSM': 'use_hsm',
-    'YHSM_DEVICE': 'yhsm_device',
-    'CRYPT_CONTEXT': 'crypt_context',
-    'REST_PATH': 'rest_path',
-}
+Base = declarative_base()
 
 
-def parse(conf, settings={}):
-    for confkey, settingskey in VALUES.items():
-        try:
-            settings[settingskey] = conf.__getattribute__(confkey)
-        except AttributeError:
+class Deletable(object):
+    """
+    Mixin for model objects which should have a delete method.
+    """
+    def delete(self):
+        session = Session.object_session(self)
+        if not session:
             pass
-    return settings
+        elif self in session.new:
+            session.expunge(self)
+        else:
+            session.delete(self)
 
 
-settings = parse(default_settings)
+class Session(Deletable, Base):
+    __tablename__ = 'sessions'
 
-dont_write_bytecode = sys.dont_write_bytecode
-try:
-    sys.dont_write_bytecode = True
-    user_settings = imp.load_source('user_settings', SETTINGS_FILE)
-    settings = parse(user_settings, settings)
-except IOError, e:
-    if not e.errno in [errno.ENOENT, errno.EACCES]:
-        raise e
-finally:
-    sys.dont_write_bytecode = dont_write_bytecode
-
-settings['rest_path'] = settings['rest_path'].strip('/')
-
-if not 'YHSM_DEVICE' in os.environ and 'yhsm_device' in settings:
-    #The environment variable is the one that is actually used.
-    os.environ['YHSM_DEVICE'] = settings['yhsm_device']
+    id = Column(Integer, Sequence('session_id_seq'), primary_key=True)
+    sessionId = Column(String(64), nullable=False, unique=True)
+    username = Column(String(32), nullable=False)
+    yubikey_prefix = Column(String(32))
+    created_at = Column(DateTime, default=func.now())
+    last_used = Column(DateTime, default=func.now())

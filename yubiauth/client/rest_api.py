@@ -1,3 +1,4 @@
+#!/usr/bin/python
 #
 # Copyright (c) 2013 Yubico AB
 # All rights reserved.
@@ -27,54 +28,16 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 
-__all__ = [
-    'settings'
-]
+from wsgiref.simple_server import make_server
+from webob import exc
+from yubiauth.rest_common import REST_API, Route, json_response, json_error
 
-import sys
-import imp
-import errno
-import os
-import default_settings
+class ClientAPI(REST_API):
+    pass
 
 
-SETTINGS_FILE = os.getenv('YUBIAUTH_SETTINGS',
-                          '/etc/yubico/yubiauth/yubiauth.conf')
+application = ClientAPI()
 
-VALUES = {
-    'DATABASE_CONFIGURATION': 'db',
-    'YKVAL_SERVERS': 'ykval',
-    'USE_HSM': 'use_hsm',
-    'YHSM_DEVICE': 'yhsm_device',
-    'CRYPT_CONTEXT': 'crypt_context',
-    'REST_PATH': 'rest_path',
-}
-
-
-def parse(conf, settings={}):
-    for confkey, settingskey in VALUES.items():
-        try:
-            settings[settingskey] = conf.__getattribute__(confkey)
-        except AttributeError:
-            pass
-    return settings
-
-
-settings = parse(default_settings)
-
-dont_write_bytecode = sys.dont_write_bytecode
-try:
-    sys.dont_write_bytecode = True
-    user_settings = imp.load_source('user_settings', SETTINGS_FILE)
-    settings = parse(user_settings, settings)
-except IOError, e:
-    if not e.errno in [errno.ENOENT, errno.EACCES]:
-        raise e
-finally:
-    sys.dont_write_bytecode = dont_write_bytecode
-
-settings['rest_path'] = settings['rest_path'].strip('/')
-
-if not 'YHSM_DEVICE' in os.environ and 'yhsm_device' in settings:
-    #The environment variable is the one that is actually used.
-    os.environ['YHSM_DEVICE'] = settings['yhsm_device']
+if __name__ == '__main__':
+    httpd = make_server('localhost', 8080, application)
+    httpd.serve_forever()
