@@ -26,24 +26,9 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
-from sqlalchemy import (func, Sequence, Column, Boolean, Integer,
-                        String, ForeignKey, DateTime, UniqueConstraint, Table)
-from sqlalchemy.ext.declarative import declarative_base, declared_attr
-from sqlalchemy.orm import relationship, backref
-from sqlalchemy.orm.collections import attribute_mapped_collection
-from sqlalchemy.ext.associationproxy import association_proxy
 
-from yubiauth.util.model import Deletable, Session
-
-Base = declarative_base()
-
-
-class Session(Deletable, Base):
-    __tablename__ = 'sessions'
-
-    id = Column(Integer, Sequence('session_id_seq'), primary_key=True)
-    sessionId = Column(String(64), nullable=False, unique=True)
-    username = Column(String(32), nullable=False)
-    yubikey_prefix = Column(String(32))
-    created_at = Column(DateTime, default=func.now())
-    last_used = Column(DateTime, default=func.now())
+__all__ = [
+    'model',
+    'controller',
+    'rest',
+]

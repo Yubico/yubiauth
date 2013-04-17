@@ -1,14 +1,14 @@
 from nose import with_setup
 from nose.tools import raises
 
-from yubiauth.core.model import create_db
+from yubiauth import create_tables
 from yubiauth.core import YubiAuth
 
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
 engine = create_engine('sqlite:///:memory:', echo=True)
-create_db(engine)
+create_tables(engine)
 Session = sessionmaker(bind=engine)
 auth = None
 

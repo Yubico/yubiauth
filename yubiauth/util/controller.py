@@ -35,6 +35,9 @@ from sqlalchemy.exc import IntegrityError
 
 
 class Controller(object):
+    """
+    Base class for creating Controllers that deal with models.
+    """
     def __init__(self, create_session):
         self.session = create_session()
 

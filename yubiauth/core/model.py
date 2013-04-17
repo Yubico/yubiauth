@@ -29,17 +29,19 @@
 
 __all__ = [
     'User',
-    'Session',
-    'create_db'
+    'Attribute',
+    'YubiKey',
+    'Base',
 ]
 
 from UserDict import DictMixin
 from yubiauth.config import settings
+from yubiauth.util.model import Session, Deletable
 
-from sqlalchemy import (create_engine, Sequence, Column, Boolean, Integer,
-                        String, ForeignKey, UniqueConstraint, Table)
+from sqlalchemy import (Sequence, Column, Boolean, Integer, String, ForeignKey,
+                        UniqueConstraint, Table)
 from sqlalchemy.ext.declarative import declarative_base, declared_attr
-from sqlalchemy.orm import sessionmaker, relationship, backref
+from sqlalchemy.orm import relationship, backref
 from sqlalchemy.orm.collections import attribute_mapped_collection
 from sqlalchemy.ext.associationproxy import association_proxy
 
@@ -210,20 +212,6 @@ class AttributeHolder(object):
             'all, delete')
 
 
-class Deletable(object):
-    """
-    Mixin for model objects which should have a delete method.
-    """
-    def delete(self):
-        session = Session.object_session(self)
-        if not session:
-            pass
-        elif self in session.new:
-            session.expunge(self)
-        else:
-            session.delete(self)
-
-
 class User(AttributeHolder, Deletable, Base):
     """
     A user.
@@ -374,18 +362,3 @@ class YubiKey(AttributeHolder, Deletable, Base):
     def __repr__(self):
         return ("YubiKey(id: '%r', prefix: '%s')" %
                 (self.id, self.prefix)).encode('utf-8')
-
-
-def create_db(engine):
-    """
-    Initializes the required tables in the database for the model objects in
-    this package.
-
-    @param engine: A database engine.
-    @type engine:  C{sqlalchemy.engine.base.Engine}
-    """
-    Base.metadata.create_all(engine)
-
-
-engine = create_engine(settings['db'], echo=False)
-Session = sessionmaker(bind=engine)

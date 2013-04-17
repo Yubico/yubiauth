@@ -26,24 +26,32 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
-from sqlalchemy import (func, Sequence, Column, Boolean, Integer,
-                        String, ForeignKey, DateTime, UniqueConstraint, Table)
-from sqlalchemy.ext.declarative import declarative_base, declared_attr
-from sqlalchemy.orm import relationship, backref
-from sqlalchemy.orm.collections import attribute_mapped_collection
-from sqlalchemy.ext.associationproxy import association_proxy
 
-from yubiauth.util.model import Deletable, Session
+__all__ = [
+    'engine',
+    'Session',
+    'Deletable'
+]
 
-Base = declarative_base()
+from yubiauth.config import settings
+
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
 
 
-class Session(Deletable, Base):
-    __tablename__ = 'sessions'
+engine = create_engine(settings['db'], echo=False)
+Session = sessionmaker(bind=engine)
 
-    id = Column(Integer, Sequence('session_id_seq'), primary_key=True)
-    sessionId = Column(String(64), nullable=False, unique=True)
-    username = Column(String(32), nullable=False)
-    yubikey_prefix = Column(String(32))
-    created_at = Column(DateTime, default=func.now())
-    last_used = Column(DateTime, default=func.now())
+
+class Deletable(object):
+    """
+    Mixin for model objects which should have a delete method.
+    """
+    def delete(self):
+        session = Session.object_session(self)
+        if not session:
+            pass
+        elif self in session.new:
+            session.expunge(self)
+        else:
+            session.delete(self)
