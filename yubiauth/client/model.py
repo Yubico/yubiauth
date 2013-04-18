@@ -40,7 +40,8 @@ import re
 import uuid
 import base64
 
-from yubiauth.util.model import Deletable
+from yubiauth.util.model import Deletable, Session
+from yubiauth.core.model import User
 
 Base = declarative_base()
 
@@ -75,6 +76,14 @@ class UserSession(Deletable, Base):
             'created_at': self.created_at,
             'last_used': self.last_used
         }
+
+    @property
+    def user(self):
+        if not self._user:
+            session = Session.object_session(self)
+            self._user = session.query(User).filter(User.name ==
+                                                    session.username).one()
+        return self._user
 
     def __repr__(self):
         return (
@@ -135,7 +144,7 @@ class AttributeType(Deletable, Base):
 
     @property
     def attribute_key(self):
-        #TODO: normalize name
+        # TODO: normalize name
         return '__%s' % self.name
 
     @property

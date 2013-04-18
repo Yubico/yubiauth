@@ -45,7 +45,7 @@ class Client(Controller):
         super(Client, self).__init__(create_session)
         self.auth = YubiAuth()
 
-    def validate_authentication(self, username, password, otp=None):
+    def create_session(self, username, password, otp=None):
         user = self.auth.get_user(username)
         if not user.validate_password(password):
             raise ValueError("Invalid credentials!")
@@ -54,18 +54,16 @@ class Client(Controller):
                 return
         else:
             sl = settings['security_level']
-            if sl == 0:
-                return
-            elif sl == 1 and len(user.yubikeys) == 0:
+            if sl == 0 or (sl == 1 and len(user.yubikeys) == 0):
                 return
         raise ValueError("Invalid credentials!")
 
-    def create_session(self, username, password, otp=None):
-        self.validate_authentication(username, password, otp)
         prefix = otp[:-32] if otp else None
         user_session = UserSession(username, prefix)
         self.session.add(user_session)
         if self.commit():
+            #Prevent loading the user twice
+            user_session._user = user
             return user_session
 
         raise ValueError("Error creating session for user: '%s'" % (username))
@@ -74,7 +72,11 @@ class Client(Controller):
         try:
             user_session = self.session.query(UserSession).filter(
                 UserSession.sessionId == sessionId).one()
+            assert user_session.user
         except Exception:
+            if user_session:
+                user_session.delete()
+                self.commit()
             raise ValueError("Session not found!")
 
         user_session.update_used()
