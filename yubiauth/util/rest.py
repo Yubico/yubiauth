@@ -84,16 +84,19 @@ class Route(object):
 
 class REST_API(object):
     __routes__ = []
-    __base_path__ = '/'
+
+    def __init__(self, base_path='/'):
+        print '%r using base path: %s' % (self.__class__, base_path)
+        self._base_path = base_path
 
     @wsgify
     def __call__(self, request):
-        if not request.path.startswith(self.__base_path__):
+        if not request.path.startswith(self._base_path):
             raise exc.HTTPNotFound
 
         for route in self.__routes__:
             controller, args = route.get_controller(request,
-                                                    self.__base_path__)
+                                                    self._base_path)
             if controller:
                 try:
                     self._call_setup(request)

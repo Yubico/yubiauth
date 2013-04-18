@@ -29,15 +29,29 @@
 
 from wsgiref.simple_server import make_server
 from webob import exc
-from yubiauth.util.rest import REST_API, Route, json_response, json_error
-from yubiauth import settings
+from webob.dec import wsgify
+
+from yubiauth.core.rest import application as core_api
+from yubiauth.client.rest import application as client_api
 
 
-class ClientAPI(REST_API):
-    pass
+class YubiAuthAPI(object):
+    def __init__(self):
+        self._apis = [
+            core_api,
+            client_api
+        ]
+
+    @wsgify
+    def __call__(self, request):
+        for api in self._apis:
+            if request.path.startswith(api._base_path):
+                return api(request)
+
+        raise exc.HTTPNotFound
 
 
-application = ClientAPI('/%s/client' % settings['rest_path'])
+application = YubiAuthAPI()
 
 if __name__ == '__main__':
     httpd = make_server('localhost', 8080, application)

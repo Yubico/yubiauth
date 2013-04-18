@@ -1,4 +1,3 @@
-#!/usr/bin/python
 #
 # Copyright (c) 2013 Yubico AB
 # All rights reserved.
@@ -46,8 +45,6 @@ ID_RE = re.compile(r'^%s$' % ID_PATTERN)
 
 
 class CoreAPI(REST_API):
-    __base_path__ = '/%s' % settings['rest_path']
-
     __user__ = r'^users/(%s|%s)' % (ID_PATTERN, USERNAME_PATTERN)
     __user_attribute__ = __user__ + r'/attributes/(%s)' % ATTRIBUTE_KEY_PATTERN
     __user_yubikey__ = __user__ + r'/yubikeys/(%s)' % YUBIKEY_PATTERN
@@ -307,7 +304,8 @@ class CoreAPI(REST_API):
         raise exc.HTTPUnauthorized
 
 
-application = CoreAPI()
+application = CoreAPI('/%s/core' % settings['rest_path'])
+
 
 if __name__ == '__main__':
     httpd = make_server('localhost', 8080, application)
