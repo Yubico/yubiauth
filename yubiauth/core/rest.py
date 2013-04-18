@@ -141,7 +141,7 @@ class CoreAPI(REST_API):
 
         try:
             user = self.auth.create_user(username, password)
-            url = '%s/users/%d' % (self.__base_path__, user.id)
+            url = '%s/users/%d' % (self._base_path, user.id)
             return json_response({
                 'id': user.id,
                 'name': user.name

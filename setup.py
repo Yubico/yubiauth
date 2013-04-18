@@ -32,9 +32,9 @@ from setuptools import setup
 import sys
 import os
 
-tests_require=['WebTest']
+tests_require = ['WebTest']
 
-#Don't load custom settings when running tests
+# Don't load custom settings when running tests
 if 'test' in sys.argv or 'nosetests' in sys.argv:
     os.environ['YUBIAUTH_SETTINGS'] = '/dev/null'
     if 'hsm' in sys.argv:

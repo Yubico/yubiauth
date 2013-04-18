@@ -42,12 +42,16 @@ SETTINGS_FILE = os.getenv('YUBIAUTH_SETTINGS',
                           '/etc/yubico/yubiauth/yubiauth.conf')
 
 VALUES = {
+    #Core
     'DATABASE_CONFIGURATION': 'db',
     'YKVAL_SERVERS': 'ykval',
     'USE_HSM': 'use_hsm',
     'YHSM_DEVICE': 'yhsm_device',
     'CRYPT_CONTEXT': 'crypt_context',
     'REST_PATH': 'rest_path',
+    #Client
+    'CORE_URL': 'core_url',
+    'SECURITY_LEVEL': 'security_level'
 }
 
 

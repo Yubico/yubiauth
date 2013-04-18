@@ -44,3 +44,6 @@ from yubiauth.client.model import Base as client_base
 def create_tables(engine=engine):
     core_base.metadata.create_all(engine)
     client_base.metadata.create_all(engine)
+
+#TODO: Remove
+create_tables()

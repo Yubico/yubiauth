@@ -27,6 +27,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 
+from yubiauth import settings, YubiAuth
 from yubiauth.util.controller import Controller
 from yubiauth.util.model import Session
 from yubiauth.client.model import UserSession, AttributeType
@@ -42,10 +43,26 @@ class Client(Controller):
     """
     def __init__(self, create_session=Session):
         super(Client, self).__init__(create_session)
+        self.auth = YubiAuth()
+
+    def validate_authentication(self, username, password, otp=None):
+        user = self.auth.get_user(username)
+        if not user.validate_password(password):
+            raise ValueError("Invalid credentials!")
+        if otp:
+            if user.validate_otp(otp):
+                return
+        else:
+            sl = settings['security_level']
+            if sl == 0:
+                return
+            elif sl == 1 and len(user.yubikeys) == 0:
+                return
+        raise ValueError("Invalid credentials!")
 
     def create_session(self, username, password, otp=None):
-        # TODO: validate user.
-        prefix = otp[:12] if otp else None
+        self.validate_authentication(username, password, otp)
+        prefix = otp[:-32] if otp else None
         user_session = UserSession(username, prefix)
         self.session.add(user_session)
         if self.commit():
@@ -66,11 +83,16 @@ class Client(Controller):
             user_session.delete()
             raise ValueError("Session is expired!")
 
-        self.commit()
-        return user_session
+        if self.commit():
+            return user_session
 
-    def clear_sessions(self):
-        self.session.query(UserSession).delete()
+        raise ValueError("Error getting session!")
+
+    def clear_sessions(self, user=None):
+        query = self.session.query(UserSession)
+        if user:
+            query = query.filter(UserSession.username == user.name)
+        query.delete()
         self.commit()
 
     def create_attribute(self, *args, **kwargs):

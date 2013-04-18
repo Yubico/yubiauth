@@ -305,7 +305,10 @@ class User(AttributeHolder, Deletable, Base):
         @rtype: bool
         """
         prefix = otp[:-32]
-        otp_valid = yubico.verify(otp)
+        try:
+            otp_valid = yubico.verify(otp)
+        except Exception:
+            return False
 
         if prefix in self.yubikeys:
             return otp_valid and self.yubikeys[prefix].enabled
