@@ -95,7 +95,8 @@ class UserSession(Deletable, Base):
 PERMS = {
     'ALL': 1,
     'USER': 2,
-    'ADMIN': 3
+    'ADMIN': 3,
+    'NOBODY': 100
 }
 
 
@@ -120,7 +121,7 @@ class AttributeType(Deletable, Base):
     pattern = Column(String(128), nullable=False, default='.*')
     required = Column(Boolean, default=False)
     view_perms = Column(Integer, default=PERMS['ADMIN'])
-    edit_perms = Column(Integer, default=PERMS['ADMIN'])
+    edit_perms = Column(Integer, default=PERMS['USER'])
 
     def __init__(self, name, pattern=None, required=False, view_perms=0,
                  edit_perms=0):
@@ -137,13 +138,13 @@ class AttributeType(Deletable, Base):
             self.edit_perms = edit_perms
 
     def validate(self, value):
-        if not value and self.required:
-            return False
+        if not self.required and value is None:
+            return True
         regex = re.compile(self.pattern)
         return bool(regex.match(value))
 
     @property
-    def attribute_key(self):
+    def key(self):
         # TODO: normalize name
         return '__%s' % self.name
 
@@ -151,6 +152,7 @@ class AttributeType(Deletable, Base):
     def data(self):
         return {
             'name': self.name,
+            'key': self.key,
             'pattern': self.pattern,
             'required': self.required,
             'view_perms': self.view_perms,
@@ -159,6 +161,6 @@ class AttributeType(Deletable, Base):
 
     def __repr__(self):
         return (
-            "AttributeType(name: '%s', pattern: '%s')" %
-            (self.name, self.pattern)
+            "AttributeType(name: '%s', key: '%s', pattern: '%s')" %
+            (self.name, self.key, self.pattern)
         ).encode('utf-8')

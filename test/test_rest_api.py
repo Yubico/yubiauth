@@ -77,27 +77,31 @@ def test_get_user_by_name():
     assert user['name'] == 'user1'
 
 
-def test_authenticate_user_get():
-    user = app.get('/yubiauth/core/authenticate?username=user1&password=foo'
-                   ).json
-    assert user['name'] == 'user1'
+def test_validate_password_get():
+    status = app.get('/yubiauth/core/users/user1/validate?password=foo'
+                     ).json
+    assert status['valid_password']
 
 
-def test_authenticate_user_post():
-    user = app.post(
-        '/yubiauth/core/authenticate',
-        {'username': 'user1', 'password': 'foo'}
+def test_validate_password_post():
+    status = app.post(
+        '/yubiauth/core/users/user1/validate',
+        {'password': 'foo'}
     ).json
-    assert user['name'] == 'user1'
+    assert status['valid_password']
 
 
 def test_reset_password():
-    app.get('/yubiauth/core/authenticate?username=user1&password=foo')
+    status = app.get('/yubiauth/core/users/user1/validate?password=foo').json
+    assert status['valid_password']
     app.post('/yubiauth/core/users/1/reset', {'password': 'foobar'})
 
-    app.get(
-        '/yubiauth/core/authenticate?username=user1&password=foo', status=401)
-    app.get('/yubiauth/core/authenticate?username=user1&password=foobar')
+    status = app.get('/yubiauth/core/users/user1/validate?password=foo').json
+    assert not status['valid_password']
+
+    status = app.get('/yubiauth/core/users/user1/validate?password=foobar'
+                     ).json
+    assert status['valid_password']
 
 
 def test_create_user_with_existing_username():
@@ -105,20 +109,20 @@ def test_create_user_with_existing_username():
              'username': 'user1', 'password': 'bar'}, status=400)
 
 
-def test_authenticate_with_invalid_username():
-    app.post('/yubiauth/core/authenticate', {'username': 'notauser',
-                                             'password': 'foo'}, status=401)
-    app.post('/yubiauth/core/authenticate', {
-             'username': 'notauser'}, status=400)
+def test_validate_with_invalid_username():
+    app.post('/yubiauth/core/users/notauser/validate',
+             {'password': 'foo'}, status=404)
+
+    app.post('/yubiauth/core/users/notauser/validate', status=404)
 
 
-def test_authenticate_with_invalid_password():
-    app.post(
-        '/yubiauth/core/authenticate',
-        {'username': 'user1', 'password': 'wrongpassword'},
-        status=401
-    )
-    app.post('/yubiauth/core/authenticate', {'username': 'user1'}, status=400)
+def test_validate_with_invalid_password():
+    status = app.post('/yubiauth/core/users/user1/validate',
+                      {'password': 'wrongpassword'}).json
+    assert not status['valid_password']
+
+    status = app.post('/yubiauth/core/users/user1/validate').json
+    assert not status['valid_password']
 
 
 def test_get_user_by_invalid_username():
@@ -168,11 +172,6 @@ def test_unbind_yubikeys():
     app.delete('/yubiauth/core/users/1/yubikeys/%s' % PREFIX_1)
     yubikeys = app.get('/yubiauth/core/users/1/yubikeys').json
     assert yubikeys == [PREFIX_2]
-
-
-def test_authenticate_without_yubikey():
-    app.get(
-        '/yubiauth/core/authenticate?username=user2&password=bar', status=401)
 
 
 def test_find_user_by_yubikey():

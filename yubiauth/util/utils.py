@@ -28,11 +28,19 @@
 #
 
 __all__ = [
-    'model',
-    'controller',
-    'rest',
-    #functions:
     'validate_otp'
 ]
 
-from yubiauth.util.utils import validate_otp
+from yubiauth.config import settings
+from yubico_client import Yubico
+
+
+yubico = Yubico(settings['ykval_id'], settings['ykval_secret'])
+
+
+def validate_otp(otp):
+    try:
+        return yubico.verify(otp)
+    except:
+        pass
+    return False

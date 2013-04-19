@@ -28,9 +28,10 @@
 #
 
 from yubiauth import settings, YubiAuth
+from yubiauth.util import validate_otp
 from yubiauth.util.controller import Controller
 from yubiauth.util.model import Session
-from yubiauth.client.model import UserSession, AttributeType
+from yubiauth.client.model import UserSession, AttributeType, PERMS
 
 __all__ = [
     'Client'
@@ -64,7 +65,7 @@ class Client(Controller):
         user_session = UserSession(username, prefix)
         self.session.add(user_session)
         if self.commit():
-            #Prevent loading the user twice
+            # Prevent loading the user twice
             user_session._user = user
             return user_session
 
@@ -74,17 +75,14 @@ class Client(Controller):
         try:
             user_session = self.session.query(UserSession).filter(
                 UserSession.sessionId == sessionId).one()
-            assert user_session.user
         except Exception:
-            if user_session:
-                user_session.delete()
-                self.commit()
             raise ValueError("Session not found!")
 
         user_session.update_used()
 
-        if user_session.is_expired():
+        if user_session.is_expired() or not user_session.user:
             user_session.delete()
+            self.commit()
             raise ValueError("Session is expired!")
 
         if self.commit():
@@ -112,7 +110,7 @@ class Client(Controller):
         yubikey = self.auth.get_yubikey(prefix)
         code = UserSession(REVOKE_KEY).sessionId
         yubikey.attributes[REVOKE_KEY] = code
-        if self.auth.commit():
+        if self.commit():
             return code
 
     def revoke(self, code):
@@ -120,4 +118,29 @@ class Client(Controller):
         keys = self.auth.query_yubikeys(**kwargs)
         assert len(keys) == 1
         keys[0].enabled = False
-        self.auth.commit()
+        self.commit()
+
+    def sign_up(self, username, password, otp=None, attributes={}):
+        validate_attributes(self.get_attributes(), attributes)
+
+        if otp and not validate_otp(otp):
+            raise ValueError('Invalid OTP!')
+
+        user = self.auth.create_user(username, password)
+        user.attributes.update(attributes)
+        if otp:
+            user.assign_yubikey(otp)
+        self.commit()
+
+
+def validate_attributes(user_attrs, supplied_attrs, perm_level=PERMS['USER']):
+    for attr in user_attrs:
+        key = attr.key
+        if key in supplied_attrs:
+            if attr.edit_perms > perm_level:
+                raise ValueError('Not permitted to set attribute: %s' % key)
+            if not attr.validate(supplied_attrs[key]):
+                raise ValueError('Invalid value for attribute: %s = "%s"'
+                                 % (key, supplied_attrs[key]))
+        elif attr.required:
+            raise ValueError('Missing required attribute: %s' % key)

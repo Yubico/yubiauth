@@ -36,6 +36,7 @@ __all__ = [
 
 from UserDict import DictMixin
 from yubiauth.config import settings
+from yubiauth.util import validate_otp
 from yubiauth.util.model import Session, Deletable
 
 from sqlalchemy import (Sequence, Column, Boolean, Integer, String, ForeignKey,
@@ -45,7 +46,6 @@ from sqlalchemy.orm import relationship, backref
 from sqlalchemy.orm.collections import attribute_mapped_collection
 from sqlalchemy.ext.associationproxy import association_proxy
 
-from yubico_client import Yubico
 from passlib.context import CryptContext
 from passlib.registry import register_crypt_handler_path
 
@@ -58,7 +58,6 @@ if settings['use_hsm']:
 Base = declarative_base()
 
 pwd_context = CryptContext(**settings['crypt_context'])
-yubico = Yubico('11004', '5Vm3Zp2mUTQHMo1DeG9tdojpc1Y=')
 
 
 user_yubikeys = Table('user_yubikeys', Base.metadata,
@@ -305,11 +304,7 @@ class User(AttributeHolder, Deletable, Base):
         @rtype: bool
         """
         prefix = otp[:-32]
-        try:
-            otp_valid = yubico.verify(otp)
-        except Exception:
-            return False
-
+        otp_valid = validate_otp(otp)
         if prefix in self.yubikeys:
             return otp_valid and self.yubikeys[prefix].enabled
 

@@ -14,6 +14,10 @@ YKVAL_SERVERS = [
     'https://api5.yubico.com/wsapi/2.0/verify'
 ]
 
+# YubiKey Validation server API key and secret
+YKVAL_CLIENT_ID = 11004
+YKVAL_CLIENT_SECRET = '5Vm3Zp2mUTQHMo1DeG9tdojpc1Y='
+
 # Base path to host REST API from.
 # The default, 'yubiauth', will serve pages with URLs like
 # http://<host>/yubiauth/users and so on.

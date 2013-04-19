@@ -86,9 +86,7 @@ class CoreAPI(REST_API):
         Route(__yubikey_attribute__ + r'$', get='show_yubikey_attribute',
               delete='unset_yubikey_attribute'),
         Route(__yubikey_attribute__ + r'/delete$',
-              post='unset_yubikey_attribute'),
-
-        Route(r'^authenticate$', 'authenticate')
+              post='unset_yubikey_attribute')
     ]
 
     def _call_setup(self, request):
@@ -284,24 +282,6 @@ class CoreAPI(REST_API):
             'valid_password': valid_pass,
             'valid_otp': valid_otp
         })
-
-    def authenticate(self, request):
-        try:
-            username = request.params['username']
-            password = request.params['password']
-        except KeyError:
-            return json_error('Missing required parameter(s)')
-
-        otp = request.params['otp'] if 'otp' in request.params else None
-
-        try:
-            user = self.auth.authenticate(username, password, otp)
-            if user:
-                return json_response(user.data)
-        except:
-            pass
-
-        raise exc.HTTPUnauthorized
 
 
 application = CoreAPI('/%s/core' % settings['rest_path'])

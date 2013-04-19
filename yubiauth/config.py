@@ -45,6 +45,8 @@ VALUES = {
     #Core
     'DATABASE_CONFIGURATION': 'db',
     'YKVAL_SERVERS': 'ykval',
+    'YKVAL_CLIENT_ID': 'ykval_id',
+    'YKVAL_CLIENT_SECRET': 'ykval_secret',
     'USE_HSM': 'use_hsm',
     'YHSM_DEVICE': 'yhsm_device',
     'CRYPT_CONTEXT': 'crypt_context',
