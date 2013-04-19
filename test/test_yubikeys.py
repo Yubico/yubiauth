@@ -14,7 +14,7 @@ auth = None
 
 def setup():
     global auth
-    auth = YubiAuth(Session)
+    auth = YubiAuth(Session())
     teardown()
     auth.create_user('user1', 'p4ssw0rd')
     auth.create_user('user2', 'foo')
