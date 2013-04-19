@@ -40,8 +40,8 @@ class YubiAuth(Controller):
     """
     Main class for interacting with the YubiAuth backend.
     """
-    def __init__(self, create_session=Session):
-        super(YubiAuth, self).__init__(create_session)
+    def __init__(self, session=Session()):
+        super(YubiAuth, self).__init__(session)
 
     def query_users(self, **kwargs):
         """

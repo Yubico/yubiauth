@@ -38,8 +38,8 @@ class Controller(object):
     """
     Base class for creating Controllers that deal with models.
     """
-    def __init__(self, create_session):
-        self.session = create_session()
+    def __init__(self, session):
+        self.session = session
 
     def __del__(self):
         self.session.close()

@@ -36,27 +36,29 @@ __all__ = [
     'Client'
 ]
 
+REVOKE_KEY = '_revoke'
+
 
 class Client(Controller):
     """
     Main class for accessing user data.
     """
-    def __init__(self, create_session=Session):
-        super(Client, self).__init__(create_session)
-        self.auth = YubiAuth()
+    def __init__(self, session=Session()):
+        super(Client, self).__init__(session)
+        self.auth = YubiAuth(session)
 
     def create_session(self, username, password, otp=None):
         user = self.auth.get_user(username)
         if not user.validate_password(password):
             raise ValueError("Invalid credentials!")
         if otp:
-            if user.validate_otp(otp):
-                return
+            if not user.validate_otp(otp):
+                raise ValueError("Invalid credentials!")
         else:
             sl = settings['security_level']
-            if sl == 0 or (sl == 1 and len(user.yubikeys) == 0):
-                return
-        raise ValueError("Invalid credentials!")
+            count = len([key for key in user.yubikeys.values() if key.enabled])
+            if not (sl == 0 or (sl == 1 and count == 0)):
+                raise ValueError("Invalid credentials!")
 
         prefix = otp[:-32] if otp else None
         user_session = UserSession(username, prefix)
@@ -105,3 +107,17 @@ class Client(Controller):
 
     def get_attributes(self):
         return self.session.query(AttributeType).all()
+
+    def generate_revocation(self, prefix):
+        yubikey = self.auth.get_yubikey(prefix)
+        code = UserSession(REVOKE_KEY).sessionId
+        yubikey.attributes[REVOKE_KEY] = code
+        if self.auth.commit():
+            return code
+
+    def revoke(self, code):
+        kwargs = {REVOKE_KEY: code}
+        keys = self.auth.query_yubikeys(**kwargs)
+        assert len(keys) == 1
+        keys[0].enabled = False
+        self.auth.commit()
