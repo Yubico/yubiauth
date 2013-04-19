@@ -57,6 +57,7 @@ class UserSession(Deletable, Base):
     last_used = Column(DateTime, default=func.now())
 
     def __init__(self, username, prefix=None):
+        #TODO: Make sessionId stronger.
         self.sessionId = base64.urlsafe_b64encode(uuid.uuid4().get_bytes())
         self.username = username
         self.yubikey_prefix = prefix

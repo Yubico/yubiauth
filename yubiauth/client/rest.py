@@ -28,11 +28,13 @@
 #
 
 from wsgiref.simple_server import make_server
+from yubiauth.util import validate_otp
 from yubiauth.util.rest import REST_API, Route, json_response, json_error
 from yubiauth import settings
-from yubiauth.client import Client
+from yubiauth.client.controller import Client, requires_otp
 
 SESSION_COOKIE = 'YubiAuth-Session'
+SESSION_HEADER = 'X-%s' % SESSION_COOKIE
 
 
 def require_session(func):
@@ -43,28 +45,41 @@ def require_session(func):
     return inner
 
 
+def parse_auth(request):
+    try:
+        username = request.params['username']
+        password = request.params['password']
+    except KeyError:
+        return json_error('Missing required parameter(s)')
+    otp = request.params['otp'] if 'otp' in request.params else None
+    return username, password, otp
+
+
 class ClientAPI(REST_API):
     __routes__ = [
         Route(r'^login', 'login'),
+        Route(r'^authenticate', 'authenticate'),
         Route(r'^logout', 'logout'),
-        Route(r'^status', 'status')
+        Route(r'^status', 'status'),
+        Route(r'^password', post='set_password')
     ]
 
     def _call_setup(self, request):
         request.client = Client()
         request.session = None
         if SESSION_COOKIE in request.cookies:
-            print "Session: %s" % request.cookies[SESSION_COOKIE]
-            try:
-                request.session = request.client.get_session(
-                    request.cookies[SESSION_COOKIE])
-                print "Got session: %s" % request.session
-            except:
-                pass
+            sessionId = request.cookies[SESSION_COOKIE]
+        elif SESSION_HEADER in request.headers:
+            sessionId = request.headers[SESSION_HEADER]
+
+        try:
+            request.session = request.client.get_session(sessionId)
+        except:
+            pass
 
     def _call_teardown(self, request, response):
         if request.session:
-            sessionId = request.session.sessionId
+            sessionId = str(request.session.sessionId)
             # TODO: Roll session key?
             if SESSION_COOKIE in request.cookies and \
                     request.cookies[SESSION_COOKIE] == sessionId:
@@ -72,16 +87,20 @@ class ClientAPI(REST_API):
             https = request.scheme == 'https'
             response.set_cookie(SESSION_COOKIE, sessionId,
                                 secure=https, httponly=True)
+            response.headers[SESSION_HEADER] = sessionId
         elif SESSION_COOKIE in request.cookies:
             response.set_cookie(SESSION_COOKIE, None)
 
-    def login(self, request):
+    def authenticate(self, request):
+        username, password, otp = parse_auth(request)
         try:
-            username = request.params['username']
-            password = request.params['password']
-        except KeyError:
-            return json_error('Missing required parameter(s)')
-        otp = request.params['otp'] if 'otp' in request.params else None
+            request.client.authenticate(username, password, otp)
+            return json_response(True)
+        except:
+            return json_response(False, status=400)
+
+    def login(self, request):
+        username, password, otp = parse_auth(request)
 
         try:
             session = request.client.create_session(username, password, otp)
@@ -101,6 +120,24 @@ class ClientAPI(REST_API):
     @require_session
     def status(self, request):
         return json_response(request.session.data)
+
+    @require_session
+    def set_password(self, request):
+        try:
+            oldpass = request.params['oldpass']
+            newpass = request.params['newpass']
+        except:
+            return json_error('Missing required parameter(s)')
+        otp = request.params['otp'] if 'otp' in request.params else None
+
+        user = request.session.user
+        if (requires_otp(user) and not validate_otp(otp)) or not \
+                user.validate_password(oldpass):
+            return json_error('Invalid credentials!')
+
+        user.set_password(newpass)
+        request.client.commit()
+        return json_response(True)
 
 
 application = ClientAPI('/%s/client' % settings['rest_path'])

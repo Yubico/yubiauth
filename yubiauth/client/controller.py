@@ -34,10 +34,17 @@ from yubiauth.util.model import Session
 from yubiauth.client.model import UserSession, AttributeType, PERMS
 
 __all__ = [
-    'Client'
+    'Client',
+    'requires_otp'
 ]
 
 REVOKE_KEY = '_revoke'
+
+
+def requires_otp(user):
+    sl = settings['security_level']
+    count = len([key for key in user.yubikeys.values() if key.enabled])
+    return not (sl == 0 or (sl == 1 and count == 0))
 
 
 class Client(Controller):
@@ -48,19 +55,19 @@ class Client(Controller):
         super(Client, self).__init__(session)
         self.auth = YubiAuth(session)
 
-    def create_session(self, username, password, otp=None):
+    def authenticate(self, username, password, otp=None):
         user = self.auth.get_user(username)
         if not user.validate_password(password):
             raise ValueError("Invalid credentials!")
         if otp:
             if not user.validate_otp(otp):
                 raise ValueError("Invalid credentials!")
-        else:
-            sl = settings['security_level']
-            count = len([key for key in user.yubikeys.values() if key.enabled])
-            if not (sl == 0 or (sl == 1 and count == 0)):
-                raise ValueError("Invalid credentials!")
+        elif requires_otp(user):
+            raise ValueError("Invalid credentials!")
+        return user
 
+    def create_session(self, username, password, otp=None):
+        user = self.authenticate(username, password, otp)
         prefix = otp[:-32] if otp else None
         user_session = UserSession(username, prefix)
         self.session.add(user_session)
