@@ -98,16 +98,15 @@ class REST_API(object):
             controller, args = route.get_controller(request,
                                                     self._base_path)
             if controller:
-                try:
-                    self._call_setup(request)
-                    return self.__getattribute__(controller)(request, *args)
-                finally:
-                    self._call_teardown(request)
+                self._call_setup(request)
+                response = self.__getattribute__(controller)(request, *args)
+                self._call_teardown(request, response)
+                return response
 
         raise exc.HTTPNotFound
 
     def _call_setup(self, request):
         pass
 
-    def _call_teardown(self, request):
+    def _call_teardown(self, request, response):
         pass

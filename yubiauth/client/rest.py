@@ -28,13 +28,79 @@
 #
 
 from wsgiref.simple_server import make_server
-from webob import exc
 from yubiauth.util.rest import REST_API, Route, json_response, json_error
 from yubiauth import settings
+from yubiauth.client import Client
+
+SESSION_COOKIE = 'YubiAuth-Session'
+
+
+def require_session(func):
+    def inner(self, request, *args, **kwargs):
+        if not request.session:
+            return json_error('Session required!')
+        return func(self, request, *args, **kwargs)
+    return inner
 
 
 class ClientAPI(REST_API):
-    pass
+    __routes__ = [
+        Route(r'^login', 'login'),
+        Route(r'^logout', 'logout'),
+        Route(r'^status', 'status')
+    ]
+
+    def _call_setup(self, request):
+        request.client = Client()
+        request.session = None
+        if SESSION_COOKIE in request.cookies:
+            print "Session: %s" % request.cookies[SESSION_COOKIE]
+            try:
+                request.session = request.client.get_session(
+                    request.cookies[SESSION_COOKIE])
+                print "Got session: %s" % request.session
+            except:
+                pass
+
+    def _call_teardown(self, request, response):
+        if request.session:
+            sessionId = request.session.sessionId
+            # TODO: Roll session key?
+            if SESSION_COOKIE in request.cookies and \
+                    request.cookies[SESSION_COOKIE] == sessionId:
+                        return
+            https = request.scheme == 'https'
+            response.set_cookie(SESSION_COOKIE, sessionId,
+                                secure=https, httponly=True)
+        elif SESSION_COOKIE in request.cookies:
+            response.set_cookie(SESSION_COOKIE, None)
+
+    def login(self, request):
+        try:
+            username = request.params['username']
+            password = request.params['password']
+        except KeyError:
+            return json_error('Missing required parameter(s)')
+        otp = request.params['otp'] if 'otp' in request.params else None
+
+        try:
+            session = request.client.create_session(username, password, otp)
+            request.session = session
+            request.client.commit()
+            return json_response(True)
+        except:
+            return json_error('Invalid credentials!')
+
+    @require_session
+    def logout(self, request):
+        request.session.delete()
+        request.session = None
+        request.client.commit()
+        return json_response(True)
+
+    @require_session
+    def status(self, request):
+        return json_response(request.session.data)
 
 
 application = ClientAPI('/%s/client' % settings['rest_path'])

@@ -73,8 +73,8 @@ class UserSession(Deletable, Base):
             'sessionId': self.sessionId,
             'username': self.username,
             'yubikey_prefix': self.yubikey_prefix,
-            'created_at': self.created_at,
-            'last_used': self.last_used
+            'created_at': self.created_at.ctime(),
+            'last_used': self.last_used.ctime()
         }
 
     @property
