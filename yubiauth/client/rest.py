@@ -28,93 +28,92 @@
 #
 
 from wsgiref.simple_server import make_server
-from yubiauth.util import validate_otp
-from yubiauth.util.rest import REST_API, Route, json_response, json_error
+from yubiauth.util.rest import (REST_API, Route, json_response, json_error,
+                                extract_params)
 from yubiauth import settings
 from yubiauth.client.controller import Client, requires_otp
 
 SESSION_COOKIE = 'YubiAuth-Session'
 SESSION_HEADER = 'X-%s' % SESSION_COOKIE
+REVOKE_ATTRIBUTE = '_REVOKE'
 
 
 def require_session(func):
     def inner(self, request, *args, **kwargs):
-        if not request.session:
-            return json_error('Session required!')
-        return func(self, request, *args, **kwargs)
-    return inner
-
-
-def parse_auth(request):
-    try:
-        username = request.params['username']
-        password = request.params['password']
-    except KeyError:
-        return json_error('Missing required parameter(s)')
-    otp = request.params['otp'] if 'otp' in request.params else None
-    return username, password, otp
-
-
-class ClientAPI(REST_API):
-    __routes__ = [
-        Route(r'^login', 'login'),
-        Route(r'^authenticate', 'authenticate'),
-        Route(r'^logout', 'logout'),
-        Route(r'^status', 'status'),
-        Route(r'^password', post='set_password')
-    ]
-
-    def _call_setup(self, request):
-        request.client = Client()
-        request.session = None
         if SESSION_COOKIE in request.cookies:
             sessionId = request.cookies[SESSION_COOKIE]
         elif SESSION_HEADER in request.headers:
             sessionId = request.headers[SESSION_HEADER]
+        else:
+            return json_error('Session required!')
 
         try:
             request.session = request.client.get_session(sessionId)
         except:
-            pass
+            return json_error('Session required!')
+
+        return func(self, request, *args, **kwargs)
+    return inner
+
+
+class ClientAPI(REST_API):
+    __routes__ = [
+        Route(r'^login$', 'login'),
+        Route(r'^authenticate$', 'authenticate'),
+        Route(r'^logout$', 'logout'),
+        Route(r'^status$', 'status'),
+        Route(r'^password$', post='set_password'),
+        Route(r'^revoke/generate$', 'generate_revocation'),
+        Route(r'^revoke$', post='revoke_yubikey')
+    ]
+
+    def _call_setup(self, request):
+        print "CREATING SESSION FOR %r" % request
+        request.client = Client()
+        request.session = None
 
     def _call_teardown(self, request, response):
-        if request.session:
-            sessionId = str(request.session.sessionId)
-            # TODO: Roll session key?
-            if SESSION_COOKIE in request.cookies and \
-                    request.cookies[SESSION_COOKIE] == sessionId:
-                        return
-            https = request.scheme == 'https'
-            response.set_cookie(SESSION_COOKIE, sessionId,
-                                secure=https, httponly=True)
-            response.headers[SESSION_HEADER] = sessionId
-        elif SESSION_COOKIE in request.cookies:
-            response.set_cookie(SESSION_COOKIE, None)
+        try:
+            if request.session:
+                sessionId = str(request.session.sessionId)
+                # TODO: Roll session key?
+                if SESSION_COOKIE in request.cookies and \
+                        request.cookies[SESSION_COOKIE] == sessionId:
+                            return
+                https = request.scheme == 'https'
+                response.set_cookie(SESSION_COOKIE, sessionId,
+                                    secure=https, httponly=True)
+                response.headers[SESSION_HEADER] = sessionId
+            elif SESSION_COOKIE in request.cookies:
+                response.set_cookie(SESSION_COOKIE, None)
+        finally:
+            request.client.commit()
+            del request.client
 
-    def authenticate(self, request):
-        username, password, otp = parse_auth(request)
+    @extract_params('username', 'password', 'otp?')
+    def authenticate(self, request, username, password, otp=None):
         try:
             request.client.authenticate(username, password, otp)
             return json_response(True)
         except:
             return json_response(False, status=400)
 
-    def login(self, request):
-        username, password, otp = parse_auth(request)
-
+    @extract_params('username', 'password', 'otp?')
+    def login(self, request, username, password, otp=None):
         try:
             session = request.client.create_session(username, password, otp)
             request.session = session
-            request.client.commit()
             return json_response(True)
-        except:
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+            print e
             return json_error('Invalid credentials!')
 
     @require_session
     def logout(self, request):
         request.session.delete()
         request.session = None
-        request.client.commit()
         return json_response(True)
 
     @require_session
@@ -122,22 +121,32 @@ class ClientAPI(REST_API):
         return json_response(request.session.data)
 
     @require_session
-    def set_password(self, request):
-        try:
-            oldpass = request.params['oldpass']
-            newpass = request.params['newpass']
-        except:
-            return json_error('Missing required parameter(s)')
-        otp = request.params['otp'] if 'otp' in request.params else None
-
+    @extract_params('oldpass', 'newpass', 'otp?')
+    def set_password(self, request, oldpass, newpass, otp=None):
         user = request.session.user
-        if (requires_otp(user) and not validate_otp(otp)) or not \
+        if (requires_otp(user) and not user.validate_otp(otp)) or not \
                 user.validate_password(oldpass):
             return json_error('Invalid credentials!')
 
         user.set_password(newpass)
-        request.client.commit()
         return json_response(True)
+
+    @require_session
+    @extract_params('otp')
+    def generate_revocation(self, request, otp):
+        user = request.session.user
+        if not user.validate_otp(otp):
+            return json_error('Invalid credentials!')
+        code = request.client.generate_revocation(otp[:-32])
+        return json_response(code)
+
+    @extract_params('code')
+    def revoke_yubikey(self, request, code):
+        try:
+            self.client.revoke(code)
+            return json_response(True)
+        except:
+            return json_error('Invalid code!')
 
 
 application = ClientAPI('/%s/client' % settings['rest_path'])

@@ -19,11 +19,13 @@ def setup():
     teardown()
     auth.create_user('user1', 'p4ssw0rd')
     auth.create_user('user2', 'foo')
+    auth.commit()
 
 
 def teardown():
     for user in auth.query_users():
         auth.get_user(user['id']).delete()
+    auth.commit()
 
 
 @with_setup(setup, teardown)

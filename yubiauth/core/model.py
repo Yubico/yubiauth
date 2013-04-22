@@ -266,8 +266,7 @@ class User(AttributeHolder, Deletable, Base):
 
     def set_password(self, password):
         """
-        Sets the password of the user, not yet committing the change to the
-        database.
+        Sets the password of the user.
 
         @param password: The new password to set for the user.
         @type password: string

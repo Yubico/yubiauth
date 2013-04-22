@@ -71,12 +71,9 @@ class Client(Controller):
         prefix = otp[:-32] if otp else None
         user_session = UserSession(username, prefix)
         self.session.add(user_session)
-        if self.commit():
-            # Prevent loading the user twice
-            user_session._user = user
-            return user_session
-
-        raise ValueError("Error creating session for user: '%s'" % (username))
+        # Prevent loading the user twice
+        user_session._user = user
+        return user_session
 
     def get_session(self, sessionId):
         try:
@@ -89,26 +86,20 @@ class Client(Controller):
 
         if user_session.is_expired() or not user_session.user:
             user_session.delete()
-            self.commit()
             raise ValueError("Session is expired!")
 
-        if self.commit():
-            return user_session
-
-        raise ValueError("Error getting session!")
+        return user_session
 
     def clear_sessions(self, user=None):
         query = self.session.query(UserSession)
         if user:
             query = query.filter(UserSession.username == user.name)
         query.delete()
-        self.commit()
 
     def create_attribute(self, *args, **kwargs):
         attribute = AttributeType(*args, **kwargs)
         self.session.add(attribute)
-        if self.commit():
-            return attribute
+        return attribute
 
     def get_attributes(self):
         return self.session.query(AttributeType).all()
@@ -117,15 +108,14 @@ class Client(Controller):
         yubikey = self.auth.get_yubikey(prefix)
         code = UserSession(REVOKE_KEY).sessionId
         yubikey.attributes[REVOKE_KEY] = code
-        if self.commit():
-            return code
+        return code
 
     def revoke(self, code):
         kwargs = {REVOKE_KEY: code}
         keys = self.auth.query_yubikeys(**kwargs)
-        assert len(keys) == 1
+        if not len(keys) == 1:
+            raise ValueError('Invalid revocation code!')
         keys[0].enabled = False
-        self.commit()
 
     def sign_up(self, username, password, otp=None, attributes={}):
         validate_attributes(self.get_attributes(), attributes)
@@ -137,7 +127,6 @@ class Client(Controller):
         user.attributes.update(attributes)
         if otp:
             user.assign_yubikey(otp)
-        self.commit()
 
 
 def validate_attributes(user_attrs, supplied_attrs, perm_level=PERMS['USER']):

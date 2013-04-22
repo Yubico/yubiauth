@@ -33,7 +33,8 @@ import re
 
 from yubiauth import settings
 from yubiauth.core import YubiAuth
-from yubiauth.util.rest import REST_API, Route, json_response, json_error
+from yubiauth.util.rest import (
+    REST_API, Route, no_content, json_response, json_error, extract_params)
 
 ID_PATTERN = r'\d+'
 USERNAME_PATTERN = r'(?=.*[a-zA-Z])[-_a-zA-Z0-9]{3,}'
@@ -90,23 +91,27 @@ class CoreAPI(REST_API):
     ]
 
     def _call_setup(self, request):
-        self.auth = YubiAuth()
+        request.auth = YubiAuth()
 
-    def _get_user(self, username_or_id):
+    def _call_teardown(self, request, response):
+        request.auth.commit()
+        del request.auth
+
+    def _get_user(self, request, username_or_id):
         if ID_RE.match(username_or_id):
             username_or_id = int(username_or_id)
 
         try:
-            return self.auth.get_user(username_or_id)
+            return request.auth.get_user(username_or_id)
         except:
             raise exc.HTTPNotFound
 
-    def _get_yubikey(self, *args):
+    def _get_yubikey(self, request, *args):
         try:
             if len(args) == 1:
-                return self.auth.get_yubikey(args[0])
+                return request.auth.get_yubikey(args[0])
             elif len(args) >= 2:
-                user = self._get_user(args[0])
+                user = self._get_user(request, args[0])
                 return user.yubikeys[args[1]]
         except:
             pass
@@ -116,10 +121,10 @@ class CoreAPI(REST_API):
     # Users
 
     def find_user(self, request):
-        users = self.auth.query_users(**request.params)
+        users = request.auth.query_users(**request.params)
         if len(users) == 1:
             user_id = users[0]['id']
-            user = self.auth.get_user(user_id)
+            user = request.auth.get_user(user_id)
             response = json_response(user.data)
             response.headers.add('Link', '<%s>; rel="canonical"' %
                                  request.relative_url('users/%d' % user_id))
@@ -128,17 +133,13 @@ class CoreAPI(REST_API):
         raise exc.HTTPNotFound
 
     def list_users(self, request):
-        return json_response(self.auth.query_users(**request.params))
+        return json_response(request.auth.query_users(**request.params))
 
-    def create_user(self, request):
+    @extract_params('username', 'password')
+    def create_user(self, request, username, password):
         try:
-            username = request.params['username']
-            password = request.params['password']
-        except KeyError:
-            return json_error('Missing required parameter(s)')
-
-        try:
-            user = self.auth.create_user(username, password)
+            user = request.auth.create_user(username, password)
+            request.auth.commit()
             url = '%s/users/%d' % (self._base_path, user.id)
             return json_response({
                 'id': user.id,
@@ -148,27 +149,21 @@ class CoreAPI(REST_API):
             return json_error(e.message)
 
     def show_user(self, request, username_or_id):
-        user = self._get_user(username_or_id)
+        user = self._get_user(request, username_or_id)
         return json_response(user.data)
 
-    def reset_password(self, request, username_or_id):
-        user = self._get_user(username_or_id)
-        try:
-            password = request.params['password']
-        except KeyError:
-            return json_error('Missing required parameter(s)')
-
+    @extract_params('password')
+    def reset_password(self, request, username_or_id, password):
+        user = self._get_user(request, username_or_id)
         user.set_password(password)
-        self.auth.commit()
 
-        raise exc.HTTPNoContent
+        return no_content()
 
     def delete_user(self, request, username_or_id):
-        user = self._get_user(username_or_id)
+        user = self._get_user(request, username_or_id)
         user.delete()
-        self.auth.commit()
 
-        raise exc.HTTPNoContent
+        return no_content()
 
     # Attributes
 
@@ -176,10 +171,10 @@ class CoreAPI(REST_API):
         return json_response(owner.attributes.copy())
 
     def list_user_attributes(self, request, username_or_id):
-        return self._list_attributes(self._get_user(username_or_id))
+        return self._list_attributes(self._get_user(request, username_or_id))
 
     def list_yubikey_attributes(self, request, *args):
-        return self._list_attributes(self._get_yubikey(*args))
+        return self._list_attributes(self._get_yubikey(request, *args))
 
     def _show_attribute(self, owner, attribute_key):
         if attribute_key in owner.attributes:
@@ -187,84 +182,75 @@ class CoreAPI(REST_API):
         return json_response(None)
 
     def show_user_attribute(self, request, username_or_id, attribute_key):
-        return self._show_attribute(self._get_user(username_or_id),
+        return self._show_attribute(self._get_user(request, username_or_id),
                                     attribute_key)
 
     def show_yubikey_attribute(self, request, *args):
         attribute_key = args[-1]
-        return self._show_attribute(self._get_yubikey(*args[:-1]),
+        return self._show_attribute(self._get_yubikey(request, *args[:-1]),
                                     attribute_key)
 
-    def _set_attribute(self, request, owner):
-        try:
-            key = request.params['key']
-            value = request.params['value']
-        except KeyError:
-            return json_error('Missing required parameter(s)')
-
+    @extract_params('key', 'value')
+    def _set_attribute(self, request, owner, key, value):
         owner.attributes[key] = value
-        self.auth.commit()
 
-        raise exc.HTTPNoContent
+        return no_content()
 
     def set_user_attribute(self, request, username_or_id):
-        return self._set_attribute(request, self._get_user(username_or_id))
+        return self._set_attribute(request, self._get_user(request,
+                                                           username_or_id))
 
     def set_yubikey_attribute(self, request, *args):
-        return self._set_attribute(request, self._get_yubikey(*args))
+        return self._set_attribute(request, self._get_yubikey(request, *args))
 
     def _unset_attribute(self, owner, attribute_key):
         if attribute_key in owner.attributes:
             del owner.attributes[attribute_key]
-            self.auth.commit()
 
-        raise exc.HTTPNoContent
+        return no_content()
 
     def unset_user_attribute(self, request, username_or_id, attribute_key):
-        return self._unset_attribute(self._get_user(username_or_id),
+        return self._unset_attribute(self._get_user(request, username_or_id),
                                      attribute_key)
 
     def unset_yubikey_attribute(self, request, *args):
         attribute_key = args[-1]
-        return self._unset_attribute(self._get_yubikey(*args[:-1]),
+        return self._unset_attribute(self._get_yubikey(request, *args[:-1]),
                                      attribute_key)
 
     # YubiKeys
 
     def list_yubikeys(self, request, username_or_id):
-        user = self._get_user(username_or_id)
+        user = self._get_user(request, username_or_id)
         return json_response(user.yubikeys.keys())
 
     def show_yubikey(self, request, *args):
-        yubikey = self._get_yubikey(*args)
+        yubikey = self._get_yubikey(request, *args)
         return json_response(yubikey.data)
 
-    def bind_yubikey(self, request, username_or_id):
-        user = self._get_user(username_or_id)
-        prefix = request.params['yubikey']
-        user.assign_yubikey(prefix)
-        self.auth.commit()
+    @extract_params('yubikey')
+    def bind_yubikey(self, request, username_or_id, yubikey):
+        user = self._get_user(request, username_or_id)
+        user.assign_yubikey(yubikey)
 
-        raise exc.HTTPNoContent
+        return no_content()
 
     def unbind_yubikey(self, request, username_or_id, prefix):
-        user = self._get_user(username_or_id)
+        user = self._get_user(request, username_or_id)
         del user.yubikeys[prefix]
-        self.auth.commit()
 
-        raise exc.HTTPNoContent
+        return no_content()
 
     def delete_yubikey(self, request, prefix):
-        yubikey = self._get_yubikey(prefix)
+        yubikey = self._get_yubikey(request, prefix)
         yubikey.delete()
-        self.auth.commit()
 
-        raise exc.HTTPNoContent
+        return no_content()
 
     # Validate
 
     def validate(self, request, username_or_id):
-        user = self._get_user(username_or_id)
+        user = self._get_user(request, username_or_id)
 
         if 'password' in request.params:
             password = request.params['password']

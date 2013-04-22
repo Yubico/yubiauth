@@ -57,10 +57,13 @@ class UserSession(Deletable, Base):
     last_used = Column(DateTime, default=func.now())
 
     def __init__(self, username, prefix=None):
-        #TODO: Make sessionId stronger.
-        self.sessionId = base64.urlsafe_b64encode(uuid.uuid4().get_bytes())
+        self.sessionId = self.generate_key()
         self.username = username
         self.yubikey_prefix = prefix
+
+    def generate_key(self):
+        #TODO: Make sessionId stronger.
+        return base64.urlsafe_b64encode(uuid.uuid4().get_bytes())
 
     def is_expired(self):
         return False
@@ -80,10 +83,12 @@ class UserSession(Deletable, Base):
 
     @property
     def user(self):
-        if not self._user:
+        try:
+            return self._user
+        except:
             session = Session.object_session(self)
             self._user = session.query(User).filter(User.name ==
-                                                    session.username).one()
+                                                    self.username).one()
         return self._user
 
     def __repr__(self):

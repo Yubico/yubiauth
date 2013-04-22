@@ -159,7 +159,7 @@ class YubiAuth(Controller):
 
     def create_user(self, username, password):
         """
-        Creates a new user, immediately committing the change to the database.
+        Creates a new user.
 
         @param username: A unique username to give the new user.
         @type username: string
@@ -170,8 +170,10 @@ class YubiAuth(Controller):
         @return: The created user.
         @rtype: C{User}
         """
-        user = User(username, password)
-        self.session.add(user)
-        if self.commit():
+        try:
+            self.get_user(username)
+        except:
+            user = User(username, password)
+            self.session.add(user)
             return user
-        raise ValueError("Error creating user: '%s'" % (username))
+        raise ValueError('A user with that username already exists!')
