@@ -122,7 +122,7 @@ class Route(object):
                 return controller, match.groups()
             except AttributeError:
                 return json_error('Method %s not allowed' % request.method,
-                                  status=405)
+                                  status=405), None
 
         return None, None
 
@@ -143,6 +143,8 @@ class REST_API(object):
             controller, sub_args = route.get_controller(request,
                                                         self._base_path)
             if controller:
+                if isinstance(controller, Response):
+                    return controller
                 self._call_setup(request)
                 args += sub_args
                 response = None
