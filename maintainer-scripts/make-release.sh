@@ -44,7 +44,7 @@ fi
 
 python setup.py sdist upload --sign --identity $keyid
 
-gpg --detach-sign --default-key $keyid dist/$tagname.tar.gz
+gpg --output dist/$tagname.tar.gz.sig --dearmor dist/$tagname.tar.gz.asc
 gpg --verify dist/$tagname.tar.gz.sig
 
 git tag -u $keyid -m $tagname $tagname
