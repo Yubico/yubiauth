@@ -42,7 +42,7 @@ if [ "x$do_test" != "xfalse" ]; then
 	python setup.py check nosetests
 fi
 
-python setup.py sdist
+python setup.py sdist upload --sign --identity $keyid
 
 gpg --detach-sign --default-key $keyid dist/$tagname.tar.gz
 gpg --verify dist/$tagname.tar.gz.sig
