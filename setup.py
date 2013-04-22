@@ -49,7 +49,7 @@ setup(
     maintainer_email='ossmaint@yubico.com',
     url='https://github.com/Yubico/yubiauth',
     license='BSD 2 clause',
-    packages=['yubiauth'],
+    packages=['yubiauth', 'yubiauth.core', 'yubiauth.client', 'yubiauth.util'],
     setup_requires=['nose>=1.0'],
     install_requires=['sqlalchemy', 'webob', 'passlib', 'yubico-client'],
     test_suite="nose.collector",
