@@ -42,7 +42,7 @@ if 'test' in sys.argv or 'nosetests' in sys.argv:
 
 setup(
     name='yubiauth',
-    version='0.2.0',
+    version='0.2.1',
     author='Dain Nilsson',
     author_email='dain@yubico.com',
     maintainer='Yubico Open Source Maintainers',
