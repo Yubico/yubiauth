@@ -1,7 +1,7 @@
 from webtest import TestApp
 from yubiauth.core.rest import application
 from yubiauth.util.model import engine
-from yubiauth import create_tables
+from yubiauth import create_tables, YubiAuth
 
 
 create_tables(engine)
@@ -10,6 +10,12 @@ app = TestApp(application)
 
 
 # Users
+def setup():
+    auth = YubiAuth()
+    for user in auth.query_users():
+        auth.get_user(user['id']).delete()
+    auth.commit()
+    del auth
 
 
 def test_create_user():

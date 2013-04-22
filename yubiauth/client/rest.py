@@ -40,16 +40,7 @@ REVOKE_ATTRIBUTE = '_REVOKE'
 
 def require_session(func):
     def inner(self, request, *args, **kwargs):
-        if SESSION_COOKIE in request.cookies:
-            sessionId = request.cookies[SESSION_COOKIE]
-        elif SESSION_HEADER in request.headers:
-            sessionId = request.headers[SESSION_HEADER]
-        else:
-            return json_error('Session required!')
-
-        try:
-            request.session = request.client.get_session(sessionId)
-        except:
+        if not request.session:
             return json_error('Session required!')
 
         return func(self, request, *args, **kwargs)
@@ -68,9 +59,17 @@ class ClientAPI(REST_API):
     ]
 
     def _call_setup(self, request):
-        print "CREATING SESSION FOR %r" % request
         request.client = Client()
         request.session = None
+        if SESSION_COOKIE in request.cookies:
+            sessionId = request.cookies[SESSION_COOKIE]
+        elif SESSION_HEADER in request.headers:
+            sessionId = request.headers[SESSION_HEADER]
+
+        try:
+            request.session = request.client.get_session(sessionId)
+        except:
+            pass
 
     def _call_teardown(self, request, response):
         try:
@@ -85,6 +84,7 @@ class ClientAPI(REST_API):
                                     secure=https, httponly=True)
                 response.headers[SESSION_HEADER] = sessionId
             elif SESSION_COOKIE in request.cookies:
+                print "Unsetting cookie!"
                 response.set_cookie(SESSION_COOKIE, None)
         finally:
             request.client.commit()
