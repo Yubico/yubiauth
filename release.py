@@ -87,6 +87,9 @@ class release(Command):
             tag_opts[0] = '-u ' + self.keyid
         self.execute(os.system, ('git tag ' + (' '.join(tag_opts)),))
 
+    def _do_call_publish(self, cmd):
+        self._published = os.system(cmd) == 0
+
     def _publish(self):
         web_repo = os.getenv('YUBICO_GITHUB_REPO')
         if web_repo and os.path.isdir(web_repo):
@@ -96,9 +99,13 @@ class release(Command):
             ]
             cmd = '%s/publish %s %s %s' % (
                 web_repo, self.name, self.version, ' '.join(artifacts))
-            if self.execute(os.system, (cmd,)) == 0:
+
+            self.execute(self._do_call_publish, (cmd,))
+            if self._published:
                 self.announce("Release published! Don't forget to:", log.INFO)
+                self.announce("")
                 self.announce("    (cd %s && git push)" % web_repo, log.INFO)
+                self.announce("")
             else:
                 self.warn("There was a problem publishing the release!")
         else:
@@ -138,4 +145,6 @@ class release(Command):
         self._publish()
 
         self.announce("Release complete! Don't forget to:", log.INFO)
+        self.announce("")
         self.announce("    git push && git push --tags", log.INFO)
+        self.announce("")
