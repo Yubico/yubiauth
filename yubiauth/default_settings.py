@@ -36,14 +36,13 @@ YHSM_DEVICE = 'daemon://localhost:5348'
 # Will default to using yhsm_pbkdf2_sha1 for password hashes if a HSM is
 # available.
 CRYPT_CONTEXT = {
-    'schemes': ['yhsm_pbkdf2_sha1', 'sha512_crypt', 'sha256_crypt']
-    if USE_HSM else ['sha512_crypt', 'sha256_crypt'],
+    'schemes': ['yhsm_pbkdf2_sha1', 'sha256_crypt'] if USE_HSM
+    else ['sha256_crypt'],
+    'deprecated': ['sha256_crypt'] if USE_HSM else [],
     'default': 'yhsm_pbkdf2_sha1' if USE_HSM else 'sha256_crypt',
     'yhsm_pbkdf2_sha1__key_handle': 1,
     'all__vary_rounds': 0.1,
-    'sha512_crypt__min_rounds': 60000,
     'sha256_crypt__min_rounds': 80000,
-    'admin__sha512_crypt__min_rounds': 120000,
     'admin__sha256_crypt__min_rounds': 160000
 }
 
