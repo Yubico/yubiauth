@@ -30,7 +30,7 @@ USE_HSM = False
 
 # YubiHSM, only used if USE_HSM is True.
 # Setting the 'YHSM_DEVICE' environment variable will override this.
-YHSM_DEVICE = 'daemon://localhost:5348'
+YHSM_DEVICE = 'yhsm://localhost:5348'
 
 # Passlib configuration
 # Will default to using yhsm_pbkdf2_sha1 for password hashes if a HSM is
