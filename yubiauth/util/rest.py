@@ -131,7 +131,6 @@ class REST_API(object):
     __routes__ = []
 
     def __init__(self, base_path='/'):
-        print '%r using base path: %s' % (self.__class__, base_path)
         self._base_path = base_path
 
     @wsgify
