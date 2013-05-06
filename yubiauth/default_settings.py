@@ -60,5 +60,10 @@ CRYPT_CONTEXT = {
 # 2 = Always require. OTPs are required by all users. If no YubiKey
 # has been assigned, that user cannot log in, unless auto-provisioning
 # is enabled.
-#
 SECURITY_LEVEL = 1
+
+# Auto-provision YubiKeys.
+# When enabled, an attempt to authenticate a user that doesn't have a YubiKey
+# assigned with a valid YubiKey OTP, will cause that YubiKey to become
+# automatically assigned to the user.
+AUTO_PROVISION = True

@@ -53,7 +53,8 @@ VALUES = {
     'REST_PATH': 'rest_path',
     #Client
     'CORE_URL': 'core_url',
-    'SECURITY_LEVEL': 'security_level'
+    'SECURITY_LEVEL': 'security_level',
+    'AUTO_PROVISION': 'auto_provision'
 }
 
 
