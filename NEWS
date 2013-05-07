@@ -1,3 +1,11 @@
+* Version 0.2.2 (released 2013-05-07)
+
+  * Added auto-provisioning of YubiKeys (on by default)
+
+  * Added support for empty passwords (off by default).
+
+  * Added YubiKey identification (off by default).
+
 * Version 0.2.1 (released 2013-04-22)
 
   * Re-release of 0.2.0 as the original release was missing files.
