@@ -70,11 +70,11 @@ class Client(Controller):
         self.auth = YubiAuth(session)
 
     def _user_for_otp(self, otp):
-        yubikey = self.auth.get_yubikey(otp[:-32])
-        if yubikey.enabled and len(yubikey.users) == 1:
-            return yubikey.users[0]
-        else:
-            raise ValueError("Unable to locate user!")
+        if settings['yubikey_id']:
+            yubikey = self.auth.get_yubikey(otp[:-32])
+            if yubikey.enabled and len(yubikey.users) == 1:
+                return yubikey.users[0]
+        raise ValueError("Unable to locate user!")
 
     def authenticate(self, username, password, otp=None):
         if not username and otp:

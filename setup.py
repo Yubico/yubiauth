@@ -33,7 +33,7 @@ import sys
 import os
 from release import release
 
-tests_require = ['WebTest']
+tests_require = ['WebTest', 'mock']
 
 # Don't load custom settings (for tests, etc.)
 os.environ['YUBIAUTH_SETTINGS'] = '/dev/null'

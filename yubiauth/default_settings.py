@@ -78,3 +78,7 @@ SECURITY_LEVEL = 1
 # assigned with a valid YubiKey OTP, will cause that YubiKey to become
 # automatically assigned to the user.
 AUTO_PROVISION = True
+
+# When set to True, allow users authenticating with a YubiKey to omit their
+# username, using the OTP to do a lookup on the username.
+YUBIKEY_IDENTIFICATION = False

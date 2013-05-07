@@ -81,14 +81,19 @@ def test_authentication_without_username(mock):
 
     app.post('/yubiauth/client/yubikey', {'otp': otp})
 
-    assert app.post('/yubiauth/client/authenticate',
-                    {'otp': otp, 'password': 'pass1'}).json
-
-    assert not app.post('/yubiauth/client/authenticate',
-                        {'otp': otp, 'password': 'wrongpass'},
-                        status=400).json
-    otp = 'd' * 44
-
     assert not app.post('/yubiauth/client/authenticate',
                         {'otp': otp, 'password': 'pass1'},
                         status=400).json
+
+    with setting(yubikey_id=True):
+        assert app.post('/yubiauth/client/authenticate',
+                        {'otp': otp, 'password': 'pass1'}).json
+
+        assert not app.post('/yubiauth/client/authenticate',
+                            {'otp': otp, 'password': 'wrongpass'},
+                            status=400).json
+        otp = 'd' * 44
+
+        assert not app.post('/yubiauth/client/authenticate',
+                            {'otp': otp, 'password': 'pass1'},
+                            status=400).json

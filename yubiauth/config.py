@@ -55,7 +55,8 @@ VALUES = {
     #Client
     'CORE_URL': 'core_url',
     'SECURITY_LEVEL': 'security_level',
-    'AUTO_PROVISION': 'auto_provision'
+    'AUTO_PROVISION': 'auto_provision',
+    'YUBIKEY_IDENTIFICATION': 'yubikey_id'
 }
 
 
