@@ -91,7 +91,7 @@ def test_authentication_without_username(mock):
     )
 
     otp = 'c' * 44
-    app.post('/yubiauth/client/yubikey', {'otp': otp})
+    app.post('/yubiauth/client/yubikey', {'yubikey': otp, 'password': 'pass1'})
 
     assert not app.post('/yubiauth/client/authenticate',
                         {'otp': otp, 'password': 'pass1'},
