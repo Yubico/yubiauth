@@ -266,12 +266,18 @@ class User(AttributeHolder, Deletable, Base):
 
     def set_password(self, password):
         """
-        Sets the password of the user.
+        Sets the password of the user. An empty String is treated as no
+        password. If no password is set the user either can't log in (default)
+        or, if the ALLOW_EMPTY_PASSWORDS setting is set to True, the user may
+        log in without providing a password.
 
         @param password: The new password to set for the user.
         @type password: string
         """
-        self.auth = pwd_context.encrypt(password)
+        if password:
+            self.auth = pwd_context.encrypt(password)
+        else:
+            self.auth = None
 
     def validate_password(self, password):
         """
@@ -283,6 +289,9 @@ class User(AttributeHolder, Deletable, Base):
         @return: True if the password was valid, False if not.
         @rtype bool
         """
+        if not password and settings['allow_empty']:
+            return True
+
         valid, new_auth = pwd_context.\
             verify_and_update(password, self.auth)
         if valid:

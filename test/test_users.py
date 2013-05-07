@@ -3,6 +3,7 @@ from nose.tools import raises
 
 from yubiauth import create_tables
 from yubiauth.core import YubiAuth
+from utils import setting
 
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
@@ -50,3 +51,16 @@ def test_validate_password():
     user2 = auth.get_user('user2')
     assert user2.validate_password('foo')
     assert not user2.validate_password('bar')
+
+
+@with_setup(setup, teardown)
+def test_empty_password():
+    user = auth.get_user('user1')
+    user.set_password(None)
+
+    assert not user.validate_password(None)
+    assert not user.validate_password('')
+
+    with setting(allow_empty=True):
+        assert user.validate_password(None)
+        assert user.validate_password('')

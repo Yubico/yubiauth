@@ -47,6 +47,7 @@ VALUES = {
     'YKVAL_SERVERS': 'ykval',
     'YKVAL_CLIENT_ID': 'ykval_id',
     'YKVAL_CLIENT_SECRET': 'ykval_secret',
+    'ALLOW_EMPTY_PASSWORDS': 'allow_empty',
     'USE_HSM': 'use_hsm',
     'YHSM_DEVICE': 'yhsm_device',
     'CRYPT_CONTEXT': 'crypt_context',

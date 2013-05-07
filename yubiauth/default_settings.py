@@ -18,6 +18,15 @@ YKVAL_SERVERS = [
 YKVAL_CLIENT_ID = 11004
 YKVAL_CLIENT_SECRET = '5Vm3Zp2mUTQHMo1DeG9tdojpc1Y='
 
+# Allow users with no password to log in without providing a password.
+# When set to False (default), a user with no password will be unable to log
+# in.
+#
+# WARNING: In combination with the SECURITY_LEVEL settings, this setting may
+# allow a user to log in using ONLY a username. If you're unsure if you need
+# this, leave it to False.
+ALLOW_EMPTY_PASSWORDS = False
+
 # Base path to host REST API from.
 # The default, 'yubiauth', will serve pages with URLs like
 # http://<host>/yubiauth/users and so on.
@@ -54,12 +63,14 @@ CRYPT_CONTEXT = {
 # The available levels are:
 # 0 = Permissive. OTPs are not required to authenticate, by anyone.
 #
-# 1 = Require when provisioned. OTPs are required by all users that
-# have a YubiKey assigned to them.
+# 1 = Require when provisioned. OTPs are required by all users that have a
+# YubiKey assigned to them.
 #
-# 2 = Always require. OTPs are required by all users. If no YubiKey
-# has been assigned, that user cannot log in, unless auto-provisioning
-# is enabled.
+# 2 = Always require. OTPs are required by all users. If no YubiKey has been
+# assigned, that user cannot log in, unless auto-provisioning is enabled.
+#
+# WARNING: In combination with the ALLOW_EMPTY_PASSWORDS settings, setting
+# this to 0 may allow a user to log in using ONLY a username.
 SECURITY_LEVEL = 1
 
 # Auto-provision YubiKeys.

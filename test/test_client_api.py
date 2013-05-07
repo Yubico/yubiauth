@@ -2,6 +2,7 @@ from webtest import TestApp
 from yubiauth.rest import application
 from yubiauth.util.model import engine
 from yubiauth import create_tables, YubiAuth
+from utils import setting
 
 
 create_tables(engine)
@@ -57,3 +58,15 @@ def test_update_password():
 
     app.post('/yubiauth/client/password', {
         'oldpass': 'foobar', 'newpass': 'pass1'})
+
+
+def test_empty_password_login():
+    app.post('/yubiauth/client/password', {
+        'oldpass': 'pass1', 'newpass': ''})
+
+    assert not app.post('/yubiauth/client/authenticate',
+                        {'username': 'user1'}, status=400).json
+
+    with setting(allow_empty=True):
+        assert app.post('/yubiauth/client/authenticate',
+                        {'username': 'user1'}).json

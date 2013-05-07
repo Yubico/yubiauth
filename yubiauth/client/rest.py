@@ -33,6 +33,8 @@ from yubiauth.util.rest import (REST_API, Route, json_response, json_error,
 from yubiauth import settings
 from yubiauth.client.controller import Client, requires_otp
 
+import logging as log
+
 SESSION_COOKIE = 'YubiAuth-Session'
 SESSION_HEADER = 'X-%s' % SESSION_COOKIE
 REVOKE_ATTRIBUTE = '_REVOKE'
@@ -84,30 +86,27 @@ class ClientAPI(REST_API):
                                     secure=https, httponly=True)
                 response.headers[SESSION_HEADER] = sessionId
             elif SESSION_COOKIE in request.cookies:
-                print "Unsetting cookie!"
                 response.set_cookie(SESSION_COOKIE, None)
         finally:
             request.client.commit()
             del request.client
 
-    @extract_params('username', 'password', 'otp?')
-    def authenticate(self, request, username, password, otp=None):
+    @extract_params('username', 'password?', 'otp?')
+    def authenticate(self, request, username, password=None, otp=None):
         try:
             request.client.authenticate(username, password, otp)
             return json_response(True)
         except:
             return json_response(False, status=400)
 
-    @extract_params('username', 'password', 'otp?')
-    def login(self, request, username, password, otp=None):
+    @extract_params('username', 'password?', 'otp?')
+    def login(self, request, username, password=None, otp=None):
         try:
             session = request.client.create_session(username, password, otp)
             request.session = session
             return json_response(True)
         except Exception as e:
-            import traceback
-            traceback.print_exc()
-            print e
+            log.warn(e)
             return json_error('Invalid credentials!')
 
     @require_session
