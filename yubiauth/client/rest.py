@@ -28,6 +28,7 @@
 #
 
 from wsgiref.simple_server import make_server
+from yubiauth.util import validate_otp
 from yubiauth.util.rest import (REST_API, Route, json_response, json_error,
                                 extract_params)
 from yubiauth import settings
@@ -56,6 +57,7 @@ class ClientAPI(REST_API):
         Route(r'^logout$', 'logout'),
         Route(r'^status$', 'status'),
         Route(r'^password$', post='set_password'),
+        Route(r'^yubikey$', post='assign_yubikey'),
         Route(r'^revoke/generate$', 'generate_revocation'),
         Route(r'^revoke$', post='revoke_yubikey')
     ]
@@ -91,8 +93,8 @@ class ClientAPI(REST_API):
             request.client.commit()
             del request.client
 
-    @extract_params('username', 'password?', 'otp?')
-    def authenticate(self, request, username, password=None, otp=None):
+    @extract_params('username?', 'password?', 'otp?')
+    def authenticate(self, request, username=None, password=None, otp=None):
         try:
             request.client.authenticate(username, password, otp)
             return json_response(True)
@@ -128,6 +130,17 @@ class ClientAPI(REST_API):
             return json_error('Invalid credentials!')
 
         user.set_password(newpass)
+        return json_response(True)
+
+    @require_session
+    @extract_params('otp')
+    def assign_yubikey(self, request, otp):
+        user = request.session.user
+        if not validate_otp(otp):
+            return json_error('Invalid OTP!')
+        prefix = otp[:-32]
+        if not prefix in user.yubikeys:
+            user.assign_yubikey(prefix)
         return json_response(True)
 
     @require_session

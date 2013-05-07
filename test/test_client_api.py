@@ -3,10 +3,10 @@ from yubiauth.rest import application
 from yubiauth.util.model import engine
 from yubiauth import create_tables, YubiAuth
 from utils import setting
+from mock import patch
 
 
 create_tables(engine)
-
 
 app = TestApp(application)
 
@@ -70,3 +70,25 @@ def test_empty_password_login():
     with setting(allow_empty=True):
         assert app.post('/yubiauth/client/authenticate',
                         {'username': 'user1'}).json
+
+        app.post('/yubiauth/client/password', {
+            'oldpass': '', 'newpass': 'pass1'})
+
+
+@patch('yubiauth.util.utils.yubico', return_value=True)
+def test_authentication_without_username(mock):
+    otp = 'c' * 44
+
+    app.post('/yubiauth/client/yubikey', {'otp': otp})
+
+    assert app.post('/yubiauth/client/authenticate',
+                    {'otp': otp, 'password': 'pass1'}).json
+
+    assert not app.post('/yubiauth/client/authenticate',
+                        {'otp': otp, 'password': 'wrongpass'},
+                        status=400).json
+    otp = 'd' * 44
+
+    assert not app.post('/yubiauth/client/authenticate',
+                        {'otp': otp, 'password': 'pass1'},
+                        status=400).json
