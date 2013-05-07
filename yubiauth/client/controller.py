@@ -92,7 +92,7 @@ class Client(Controller):
     def create_session(self, username, password, otp=None):
         user = self.authenticate(username, password, otp)
         prefix = otp[:-32] if otp else None
-        user_session = UserSession(username, prefix)
+        user_session = UserSession(user.name, prefix)
         self.session.add(user_session)
         # Prevent loading the user twice
         user_session._user = user

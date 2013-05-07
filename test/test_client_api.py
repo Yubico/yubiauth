@@ -58,9 +58,15 @@ def test_update_password():
 
     app.post('/yubiauth/client/password', {
         'oldpass': 'foobar', 'newpass': 'pass1'})
+    app.get('/yubiauth/client/logout')
 
 
 def test_empty_password_login():
+    app.post(
+        '/yubiauth/client/login',
+        {'username': 'user1', 'password': 'pass1'}
+    )
+
     app.post('/yubiauth/client/password', {
         'oldpass': 'pass1', 'newpass': ''})
 
@@ -74,11 +80,17 @@ def test_empty_password_login():
         app.post('/yubiauth/client/password', {
             'oldpass': '', 'newpass': 'pass1'})
 
+    app.get('/yubiauth/client/logout')
+
 
 @patch('yubiauth.util.utils.yubico', return_value=True)
 def test_authentication_without_username(mock):
-    otp = 'c' * 44
+    app.post(
+        '/yubiauth/client/login',
+        {'username': 'user1', 'password': 'pass1'}
+    )
 
+    otp = 'c' * 44
     app.post('/yubiauth/client/yubikey', {'otp': otp})
 
     assert not app.post('/yubiauth/client/authenticate',
@@ -98,12 +110,18 @@ def test_authentication_without_username(mock):
                             {'otp': otp, 'password': 'pass1'},
                             status=400).json
 
+    app.get('/yubiauth/client/logout')
+
 
 @patch('yubiauth.util.utils.yubico', return_value=True)
 def test_single_factor_login(mock):
     otp = 'c' * 44
     with setting(yubikey_id=True, allow_empty=True):
-        assert app.post('/yubiauth/client/authenticate', {'otp': otp})
+        assert app.post('/yubiauth/client/authenticate', {'otp': otp}).json
+        app.post('/yubiauth/client/login', {'otp': otp})
+        status = app.get('/yubiauth/client/status').json
+        assert status['username'] == 'user1'
+        app.get('/yubiauth/client/logout')
 
     assert not app.post('/yubiauth/client/authenticate', {'otp': otp},
                         status=400).json

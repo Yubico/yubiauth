@@ -101,8 +101,8 @@ class ClientAPI(REST_API):
         except:
             return json_response(False, status=400)
 
-    @extract_params('username', 'password?', 'otp?')
-    def login(self, request, username, password=None, otp=None):
+    @extract_params('username?', 'password?', 'otp?')
+    def login(self, request, username=None, password=None, otp=None):
         try:
             session = request.client.create_session(username, password, otp)
             request.session = session
