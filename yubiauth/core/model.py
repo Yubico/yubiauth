@@ -289,8 +289,8 @@ class User(AttributeHolder, Deletable, Base):
         @return: True if the password was valid, False if not.
         @rtype bool
         """
-        if not password and settings['allow_empty']:
-            return True
+        if not password:
+            return settings['allow_empty'] is True
 
         valid, new_auth = pwd_context.\
             verify_and_update(password, self.auth)
