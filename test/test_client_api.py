@@ -97,3 +97,13 @@ def test_authentication_without_username(mock):
         assert not app.post('/yubiauth/client/authenticate',
                             {'otp': otp, 'password': 'pass1'},
                             status=400).json
+
+
+@patch('yubiauth.util.utils.yubico', return_value=True)
+def test_single_factor_login(mock):
+    otp = 'c' * 44
+    with setting(yubikey_id=True, allow_empty=True):
+        assert app.post('/yubiauth/client/authenticate', {'otp': otp})
+
+    assert not app.post('/yubiauth/client/authenticate', {'otp': otp},
+                        status=400).json
