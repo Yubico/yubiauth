@@ -32,7 +32,7 @@ from yubiauth.util import validate_otp
 from yubiauth.util.rest import (REST_API, Route, json_response, json_error,
                                 extract_params)
 from yubiauth import settings
-from yubiauth.client.controller import Client, requires_otp
+from yubiauth.client.controller import Client
 
 import logging as log
 
@@ -56,7 +56,7 @@ class ClientAPI(REST_API):
         Route(r'^authenticate$', 'authenticate'),
         Route(r'^logout$', 'logout'),
         Route(r'^status$', 'status'),
-        Route(r'^password$', post='set_password'),
+        Route(r'^password$', post='change_password'),
         Route(r'^yubikey$', post='assign_yubikey'),
         Route(r'^revoke/generate$', 'generate_revocation'),
         Route(r'^revoke$', post='revoke_yubikey')
@@ -82,7 +82,7 @@ class ClientAPI(REST_API):
                 # TODO: Roll session key?
                 if SESSION_COOKIE in request.cookies and \
                         request.cookies[SESSION_COOKIE] == sessionId:
-                            return
+                    return
                 https = request.scheme == 'https'
                 response.set_cookie(SESSION_COOKIE, sessionId,
                                     secure=https, httponly=True)
@@ -109,6 +109,9 @@ class ClientAPI(REST_API):
             return json_response(True)
         except Exception as e:
             log.warn(e)
+            if request.session:
+                request.session.delete()
+                request.session = None
             return json_error('Invalid credentials!')
 
     @require_session
@@ -123,25 +126,29 @@ class ClientAPI(REST_API):
 
     @require_session
     @extract_params('oldpass', 'newpass', 'otp?')
-    def set_password(self, request, oldpass, newpass, otp=None):
+    def change_password(self, request, oldpass, newpass, otp=None):
         user = request.session.user
-        if (requires_otp(user) and not user.validate_otp(otp)) or not \
-                user.validate_password(oldpass):
+        try:
+            request.client.authenticate(user.name, oldpass, otp)
+            user.set_password(newpass)
+            return json_response(True)
+        except:
             return json_error('Invalid credentials!')
 
-        user.set_password(newpass)
-        return json_response(True)
-
     @require_session
-    @extract_params('otp')
-    def assign_yubikey(self, request, otp):
+    @extract_params('yubikey', 'password', 'otp?')
+    def assign_yubikey(self, request, yubikey, password, otp=None):
         user = request.session.user
-        if not validate_otp(otp):
-            return json_error('Invalid OTP!')
-        prefix = otp[:-32]
-        if not prefix in user.yubikeys:
-            user.assign_yubikey(prefix)
-        return json_response(True)
+        try:
+            request.client.authenticate(user.name, password, otp)
+            prefix = yubikey[:-32]
+            if not validate_otp(yubikey):
+                return json_error('Invalid OTP for new YubiKey!')
+            if not prefix in user.yubikeys:
+                user.assign_yubikey(prefix)
+            return json_response(True)
+        except:
+            return json_error('Invalid credentials!')
 
     @require_session
     @extract_params('otp')
