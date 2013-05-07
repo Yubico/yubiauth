@@ -39,7 +39,7 @@ import default_settings
 
 
 SETTINGS_FILE = os.getenv('YUBIAUTH_SETTINGS',
-                          '/etc/yubico/yubiauth/yubiauth.conf')
+                          '/etc/yubico/auth/yubiauth.conf')
 
 VALUES = {
     #Core

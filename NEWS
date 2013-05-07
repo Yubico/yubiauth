@@ -1,3 +1,9 @@
+* Version 0.2.3 (unreleased)
+
+  * Better security for updating credentials.
+
+  * Moved configuration file to /etc/yubico/auth/yubiauth.conf
+
 * Version 0.2.2 (released 2013-05-07)
 
   * Added auto-provisioning of YubiKeys (on by default)
