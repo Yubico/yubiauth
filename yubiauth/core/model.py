@@ -60,10 +60,13 @@ Base = declarative_base()
 pwd_context = CryptContext(**settings['crypt_context'])
 
 
-user_yubikeys = Table('user_yubikeys', Base.metadata,
-                      Column('user_id', Integer, ForeignKey('users.id')),
-                      Column('yubikey_id', Integer, ForeignKey('yubikeys.id'))
-                      )
+user_yubikeys = Table(
+    'user_yubikeys',
+    Base.metadata,
+    Column('user_id', Integer, ForeignKey('users.id', ondelete='cascade')),
+    Column('yubikey_id', Integer,
+           ForeignKey('yubikeys.id', ondelete='cascade'))
+)
 
 
 class AttributeAssociation(Base):
@@ -329,7 +332,7 @@ class User(AttributeHolder, Deletable, Base):
 
     def __repr__(self):
         return (
-            "User(id: '%r', name: '%s', yubikeys: '%r', attributes: '%r')" %
+            "User(id: %r, name: '%s', yubikeys: %r, attributes: %r)" %
             (self.id, self.name, self.yubikeys.keys(), self.attributes)
         ).encode('utf-8')
 
@@ -366,5 +369,5 @@ class YubiKey(AttributeHolder, Deletable, Base):
         }
 
     def __repr__(self):
-        return ("YubiKey(id: '%r', prefix: '%s')" %
+        return ("YubiKey(id: %r, prefix: '%s')" %
                 (self.id, self.prefix)).encode('utf-8')
