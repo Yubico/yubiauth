@@ -60,6 +60,7 @@ class CoreAPI(REST_API):
         Route(r'^users$', get='list_users', post='create_user'),
         Route(__user__ + r'$', get='show_user', delete='delete_user'),
         Route(__user__ + r'/reset$', post='reset_password'),
+        Route(__user__ + r'/rename$', post='rename_user'),
         Route(__user__ + r'/delete$', post='delete_user'),
         Route(__user__ + r'/validate$', 'validate'),
         Route(__user__ + r'/attributes$', get='list_user_attributes',
@@ -156,6 +157,13 @@ class CoreAPI(REST_API):
     def reset_password(self, request, username_or_id, password):
         user = self._get_user(request, username_or_id)
         user.set_password(password)
+
+        return no_content()
+
+    @extract_params('username')
+    def rename_user(self, request, username_or_id, username):
+        user = self._get_user(request, username_or_id)
+        user.name = username
 
         return no_content()
 
