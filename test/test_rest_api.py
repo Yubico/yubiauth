@@ -110,6 +110,17 @@ def test_reset_password():
     assert status['valid_password']
 
 
+def test_rename_user():
+    app.post('/yubiauth/core/users/user1/rename', {'username': 'user2'},
+             status=400)
+    app.post('/yubiauth/core/users/user1/rename', {'username': 'new_user'})
+    app.get('/yubiauth/core/users/user1', status=404)
+    app.get('/yubiauth/core/users/new_user')
+    app.post('/yubiauth/core/users/new_user/rename', {'username': 'user1'})
+    app.get('/yubiauth/core/users/user1')
+    app.get('/yubiauth/core/users/new_user', status=404)
+
+
 def test_create_user_with_existing_username():
     app.post('/yubiauth/core/users', {
              'username': 'user1', 'password': 'bar'}, status=400)

@@ -163,7 +163,11 @@ class CoreAPI(REST_API):
     @extract_params('username')
     def rename_user(self, request, username_or_id, username):
         user = self._get_user(request, username_or_id)
-        user.name = username
+        try:
+            request.auth.get_user(username)
+            return json_error('User "%s" already exists!' % username)
+        except:
+            user.name = username
 
         return no_content()
 
