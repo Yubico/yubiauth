@@ -1,6 +1,8 @@
-* Version 0.2.4 (unreleased)
+* Version 0.2.4 (released 2013-05-14)
 
   * Cleanup rows in user-yubikey bindings table on user/yubikey deletion.
+
+  * Added renaming of users to core REST API.
 
 * Version 0.2.3 (released 2013-05-07)
 
