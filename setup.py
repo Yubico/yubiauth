@@ -44,7 +44,7 @@ if 'hsm' in sys.argv:
 
 setup(
     name='yubiauth',
-    version='0.2.4',
+    version='0.2.5',
     author='Dain Nilsson',
     author_email='dain@yubico.com',
     maintainer='Yubico Open Source Maintainers',
