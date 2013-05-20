@@ -3,3 +3,4 @@ include NEWS
 include release.py
 include ChangeLog
 include doc/*.md
+include examples/*
