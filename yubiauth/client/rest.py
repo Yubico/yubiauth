@@ -58,7 +58,7 @@ class ClientAPI(REST_API):
         Route(r'^status$', 'status'),
         Route(r'^password$', post='change_password'),
         Route(r'^yubikey$', post='assign_yubikey'),
-        Route(r'^revoke/generate$', 'generate_revocation'),
+        Route(r'^revoke/generate$', post='generate_revocation'),
         Route(r'^revoke$', post='revoke_yubikey')
     ]
 
