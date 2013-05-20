@@ -1,3 +1,7 @@
+* Version 0.2.6 (unreleased)
+
+  * Added examples/ with FreeRADIUS example.
+
 * Version 0.2.5 (released 2013-05-17)
 
   * Fixed bug where custom YKVAL URLs were ignored.
