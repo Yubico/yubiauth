@@ -1,0 +1,98 @@
+{%- macro form_field_label(field) -%}
+	<label for="{{ field.id }}">{{ field.label.text }}
+	{%- if field.flags.required -%}
+		<abbr title="This field is required!">*</abbr>
+	{%- endif %}</label>
+{% endmacro %}
+
+{%- macro form_field_description(field) -%}
+	{% if field.description %}
+		<span class="help-block">{{ field.description|trim }}</span>
+	{% endif %}
+{%- endmacro -%}
+
+{%- macro form_field_errors(field) -%}
+	{% if field.errors %}
+	{%- for error in field.errors -%}
+	<span class="label label-important">{{ error }}</span>
+	&nbsp;
+	{%- endfor -%}
+	{% endif %}
+{%- endmacro -%}
+
+{%- macro form_field_boolean(field) -%}
+	<div class="input">
+		<label class="checkbox">
+			{{ field(**kwargs) }}
+			<span>{{ field.label.text }}</span>
+		</label>
+		{{ form_field_description(field) }}
+		{{ form_field_errors(field) }}
+	</div>
+{%- endmacro -%}
+
+{%- macro form_field(field, attrs={}) -%}
+	{% if field.type == 'HiddenField' %}
+		{{ field() }}
+	{% else %}
+		{% if field.type == 'BooleanField' %}
+			{{ form_field_boolean(field, **attrs) }}
+		{% else %}
+			{{ form_field_label(field) }}
+			{{ form_field_description(field) }}
+			{% if field.type == 'RadioField' %}
+				{{ field(class='radio-group', **attrs) }}
+			{% elif field.type == 'IntegerField' %}
+				{{ field(class='input-mini', **attrs) }}
+			{% else %}
+				{{ field(**attrs) }}
+			{% endif %}
+			{{ form_field_errors(field) }}
+		{% endif %}
+	{% endif %}
+{%- endmacro -%}
+
+{%- macro form_fieldset(fieldset) -%}
+	<fieldset>
+	{% if fieldset.legend %}
+		<legend>{{ fieldset.legend }}</legend>
+	{% endif %}
+	{% if fieldset.description %}
+		<p>{{ fieldset.description|trim }}</p>
+	{% endif %}
+	{% for field in fieldset %}
+		{% if field.type == 'HiddenField' %}
+			{{ field() }}
+		{% else %}
+			{% if fieldset.attrs is defined and fieldset.attrs[field.id] is defined %}
+				{{ form_field(field, fieldset.attrs[field.id]) }}
+			{% else %}
+				{{ form_field(field) }}
+			{% endif %}
+		{% endif %}
+	{% endfor %}
+	</fieldset>
+{%- endmacro -%}
+
+{%- macro render_form(fieldsets, action, alert=None) -%}
+	{% if alert %}
+	<div class="alert alert-{{ alert.type }}">
+		<button type="button" class="close" data-dismiss="alert">&times;</button>
+		<strong>{{ alert.title }}</strong>
+		{{ alert.message }}
+	</div>
+	{% endif %}
+
+	<form action="{{ action }}" method="post">
+	{% for fieldset in fieldsets %}
+		{{ form_fieldset(fieldset) }}
+	{% endfor %}
+	<div class="form-actions">
+		<input type="submit" class="btn btn-primary" value="Save">
+		&nbsp;
+		<button type="reset" class="btn">Reset form</button>
+	</div>
+	</form>
+{%- endmacro -%}
+
+{{ render_form(fieldsets, target, alert) }}

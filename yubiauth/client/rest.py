@@ -27,7 +27,13 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 
+__all__ = [
+    'SessionAPI',
+    'require_session'
+]
+
 from wsgiref.simple_server import make_server
+from webob.dec import wsgify
 from yubiauth.util import validate_otp
 from yubiauth.util.rest import (REST_API, Route, json_response, json_error,
                                 extract_params)
@@ -41,43 +47,25 @@ SESSION_HEADER = 'X-%s' % SESSION_COOKIE
 REVOKE_ATTRIBUTE = '_REVOKE'
 
 
-def require_session(func):
-    def inner(self, request, *args, **kwargs):
-        if not request.session:
-            return json_error('Session required!')
+@wsgify.middleware
+def with_session(app, request):
+    request.client = Client()
+    request.session = None
 
-        return func(self, request, *args, **kwargs)
-    return inner
+    if SESSION_COOKIE in request.cookies:
+        sessionId = request.cookies[SESSION_COOKIE]
+    elif SESSION_HEADER in request.headers:
+        sessionId = request.headers[SESSION_HEADER]
+    try:
+        request.session = request.client.get_session(sessionId)
+    except:
+        pass
 
+    response = request.get_response(app)
 
-class ClientAPI(REST_API):
-    __routes__ = [
-        Route(r'^login$', 'login'),
-        Route(r'^authenticate$', 'authenticate'),
-        Route(r'^logout$', 'logout'),
-        Route(r'^status$', 'status'),
-        Route(r'^password$', post='change_password'),
-        Route(r'^yubikey$', post='assign_yubikey'),
-        Route(r'^revoke/generate$', post='generate_revocation'),
-        Route(r'^revoke$', post='revoke_yubikey')
-    ]
-
-    def _call_setup(self, request):
-        request.client = Client()
-        request.session = None
-        if SESSION_COOKIE in request.cookies:
-            sessionId = request.cookies[SESSION_COOKIE]
-        elif SESSION_HEADER in request.headers:
-            sessionId = request.headers[SESSION_HEADER]
-
-        try:
-            request.session = request.client.get_session(sessionId)
-        except:
-            pass
-
-    def _call_teardown(self, request, response):
-        try:
-            if request.session:
+    try:
+        if request.session:
+            if request.session.is_valid:
                 sessionId = str(request.session.sessionId)
                 # TODO: Roll session key?
                 if SESSION_COOKIE in request.cookies and \
@@ -89,9 +77,97 @@ class ClientAPI(REST_API):
                 response.headers[SESSION_HEADER] = sessionId
             elif SESSION_COOKIE in request.cookies:
                 response.set_cookie(SESSION_COOKIE, None)
+    finally:
+        request.client.commit()
+        del request.client
+
+    return response
+
+
+class SessionAPI(REST_API):
+    """
+    Base class for REST_APIS which interact with the users session.
+
+    Provides a UserSession object in request.session, and enabled the
+    require_session decorator.
+    """
+    def __init__(self, *args, **kwargs):
+        super(SessionAPI, self).__init__(*args, **kwargs)
+
+        cls = self.__class__
+        for name, method in cls.__dict__.items():
+            if hasattr(method, 'requires_session'):
+                setattr(cls, name, real_require_session(self, method.orig))
+
+    def session_required(self, request):
+        return json_error('Session required!')
+
+    def _call_setup(self, request):
+        request.client = Client()
+        request.session = None
+        if SESSION_COOKIE in request.cookies:
+            sessionId = request.cookies[SESSION_COOKIE]
+        elif SESSION_HEADER in request.headers:
+            sessionId = request.headers[SESSION_HEADER]
+        try:
+            request.session = request.client.get_session(sessionId)
+        except:
+            pass
+
+    def _call_teardown(self, request, response):
+        try:
+            if request.session:
+                if request.session.is_valid:
+                    sessionId = str(request.session.sessionId)
+                    # TODO: Roll session key?
+                    if SESSION_COOKIE in request.cookies and \
+                            request.cookies[SESSION_COOKIE] == sessionId:
+                        return
+                    https = request.scheme == 'https'
+                    response.set_cookie(SESSION_COOKIE, sessionId,
+                                        secure=https, httponly=True)
+                    response.headers[SESSION_HEADER] = sessionId
+                elif SESSION_COOKIE in request.cookies:
+                    response.set_cookie(SESSION_COOKIE, None)
         finally:
             request.client.commit()
             del request.client
+
+
+def require_session(func):
+    """
+    Used to decorate a method on a SessionAPI to ensure that the user has
+    a valid UserSession when entering the method. If not, an error will be
+    returned.
+
+    To customize the error, override the session_required method of the api.
+    """
+    def placeholder(self, *args, **kwargs):
+        raise Exception('require_session can only be used on a SessionAPI!')
+    placeholder.requires_session = True
+    placeholder.orig = func
+    return placeholder
+
+
+def real_require_session(api, func):
+    def inner(self, request, *args, **kwargs):
+        if not request.session:
+            return api.session_required(request)
+        return func(self, request, *args, **kwargs)
+    return inner
+
+
+class ClientAPI(SessionAPI):
+    __routes__ = [
+        Route(r'^login$', 'login'),
+        Route(r'^authenticate$', 'authenticate'),
+        Route(r'^logout$', 'logout'),
+        Route(r'^status$', 'status'),
+        Route(r'^password$', post='change_password'),
+        Route(r'^yubikey$', post='assign_yubikey'),
+        Route(r'^revoke/generate$', post='generate_revocation'),
+        Route(r'^revoke$', post='revoke_yubikey')
+    ]
 
     @extract_params('username?', 'password?', 'otp?')
     def authenticate(self, request, username=None, password=None, otp=None):
@@ -111,13 +187,11 @@ class ClientAPI(REST_API):
             log.warn(e)
             if request.session:
                 request.session.delete()
-                request.session = None
             return json_error('Invalid credentials!')
 
     @require_session
     def logout(self, request):
         request.session.delete()
-        request.session = None
         return json_response(True)
 
     @require_session

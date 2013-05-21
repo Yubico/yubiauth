@@ -65,11 +65,16 @@ class UserSession(Deletable, Base):
         #TODO: Make sessionId stronger.
         return base64.urlsafe_b64encode(uuid.uuid4().get_bytes())
 
+    @property
     def is_expired(self):
         return False
 
     def update_used(self):
         self.last_used = datetime.now()
+
+    @property
+    def is_valid(self):
+        return not self.is_deleted and not self.is_expired
 
     @property
     def data(self):

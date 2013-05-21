@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+
+{% block body %}
+<div class="container">
+	{% for message in messages %}
+	<div class="alert{% if message.level %} alert-{{ message.level }}{% endif %}">
+		{{ message.text }}
+	</div>
+	{% endfor %}
+
+	{% block content %}
+	<p>Content goes here</p>
+	{% endblock %}
+
+	<hr>
+
+	<footer>
+	<p>&copy; Yubico 2013</p>
+	</footer>
+
+</div> <!-- /container -->
+
+{% endblock %}

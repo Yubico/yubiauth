@@ -27,26 +27,47 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 
+import os
 from wsgiref.simple_server import make_server
 from webob import exc
 from webob.dec import wsgify
 
 from yubiauth.core.rest import application as core_api
 from yubiauth.client.rest import application as client_api
+from yubiauth.ui.web import application as client_ui
+from yubiauth.util.static import DirectoryApp
+from yubiauth.config import settings
+
+STATIC_ASSETS = ['js', 'css', 'img', 'favicon.ico']
+STATIC_PATH = settings['rest_path']
 
 
 class YubiAuthAPI(object):
     def __init__(self):
+        self.base = '/%s' % settings['rest_path']
+        base_dir = os.path.dirname(__file__)
+        static_dir = os.path.join(base_dir, 'static')
+        self.static_app = DirectoryApp(static_dir)
+
         self._apis = [
             core_api,
-            client_api
+            client_api,
+            client_ui
         ]
 
     @wsgify
     def __call__(self, request):
-        for api in self._apis:
-            if request.path.startswith(api._base_path):
-                return api(request)
+        if request.path_info.startswith(self.base):
+            path = request.path_info[len(self.base):]
+            base = next((x for x in path.split('/') if x), None)
+            if base in STATIC_ASSETS:
+                trimmed = ''
+                while trimmed != self.base:
+                    trimmed += '/' + request.path_info_pop()
+                return request.get_response(self.static_app)
+            for api in self._apis:
+                if request.path.startswith(api._base_path):
+                    return api(request)
 
         raise exc.HTTPNotFound
 

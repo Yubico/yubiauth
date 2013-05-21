@@ -107,7 +107,7 @@ class Client(Controller):
 
         user_session.update_used()
 
-        if user_session.is_expired() or not user_session.user:
+        if not user_session.is_valid:
             user_session.delete()
             raise ValueError("Session is expired!")
 

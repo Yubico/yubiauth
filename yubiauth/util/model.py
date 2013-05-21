@@ -47,7 +47,9 @@ class Deletable(object):
     """
     Mixin for model objects which should have a delete method.
     """
+
     def delete(self):
+        self._deleted = True
         session = Session.object_session(self)
         if not session:
             pass
@@ -55,3 +57,7 @@ class Deletable(object):
             session.expunge(self)
         else:
             session.delete(self)
+
+    @property
+    def is_deleted(self):
+        return hasattr(self, '_deleted')
