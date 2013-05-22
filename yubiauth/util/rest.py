@@ -110,11 +110,8 @@ class Route(object):
         if 'delete' in kwargs:
             self.delete = kwargs['delete']
 
-    def get_controller(self, request, base_path):
-        path = request.path[len(base_path) + 1:]
-        if path.endswith('/'):
-            path = path[:-1]
-        match = self.pattern.match(path)
+    def get_controller(self, request):
+        match = self.pattern.match(request.path_info)
 
         if match:
             try:
@@ -130,17 +127,10 @@ class Route(object):
 class REST_API(object):
     __routes__ = []
 
-    def __init__(self, base_path='/'):
-        self._base_path = base_path
-
     @wsgify
     def __call__(self, request, *args, **kwargs):
-        if not request.path.startswith(self._base_path):
-            raise exc.HTTPNotFound
-
         for route in self.__routes__:
-            controller, sub_args = route.get_controller(request,
-                                                        self._base_path)
+            controller, sub_args = route.get_controller(request)
             if controller:
                 if isinstance(controller, Response):
                     return controller

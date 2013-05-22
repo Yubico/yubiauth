@@ -28,80 +28,18 @@
 #
 
 __all__ = [
-    'UserSession'
+    'AttributeType',
+    'PERMS'
 ]
 
-from sqlalchemy import (func, Sequence, Column, Boolean, Integer,
-                        String, DateTime)
+from sqlalchemy import Sequence, Column, Boolean, Integer, String
 from sqlalchemy.ext.declarative import declarative_base
 
-from datetime import datetime
 import re
-import uuid
-import base64
 
-from yubiauth.util.model import Deletable, Session
-from yubiauth.core.model import User
+from yubiauth.util.model import Deletable
 
 Base = declarative_base()
-
-
-class UserSession(Deletable, Base):
-    __tablename__ = 'user_sessions'
-
-    id = Column(Integer, Sequence('user_session_id_seq'), primary_key=True)
-    sessionId = Column(String(64), nullable=False, unique=True)
-    username = Column(String(32), nullable=False)
-    yubikey_prefix = Column(String(32))
-    created_at = Column(DateTime, default=func.now())
-    last_used = Column(DateTime, default=func.now())
-
-    def __init__(self, username, prefix=None):
-        self.sessionId = self.generate_key()
-        self.username = username
-        self.yubikey_prefix = prefix
-
-    def generate_key(self):
-        #TODO: Make sessionId stronger.
-        return base64.urlsafe_b64encode(uuid.uuid4().get_bytes())
-
-    @property
-    def is_expired(self):
-        return False
-
-    def update_used(self):
-        self.last_used = datetime.now()
-
-    @property
-    def is_valid(self):
-        return not self.is_deleted and not self.is_expired
-
-    @property
-    def data(self):
-        return {
-            'sessionId': self.sessionId,
-            'username': self.username,
-            'yubikey_prefix': self.yubikey_prefix,
-            'created_at': self.created_at.ctime(),
-            'last_used': self.last_used.ctime()
-        }
-
-    @property
-    def user(self):
-        try:
-            return self._user
-        except:
-            session = Session.object_session(self)
-            self._user = session.query(User).filter(User.name ==
-                                                    self.username).one()
-        return self._user
-
-    def __repr__(self):
-        return (
-            "UserSession(sessionId: '%s', username: '%s')" %
-            (self.sessionId, self.username)
-        ).encode('utf-8')
-
 
 PERMS = {
     'ALL': 1,

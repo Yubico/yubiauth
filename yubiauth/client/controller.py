@@ -31,7 +31,10 @@ from yubiauth import settings, YubiAuth
 from yubiauth.util import validate_otp
 from yubiauth.util.controller import Controller
 from yubiauth.util.model import Session
-from yubiauth.client.model import UserSession, AttributeType, PERMS
+from yubiauth.client.model import AttributeType, PERMS
+from beaker.session import Session as UserSession
+import uuid
+import base64
 
 __all__ = [
     'Client',
@@ -59,6 +62,12 @@ def authenticate_otp(user, otp):
             return user.validate_otp(otp)
     else:
         return not requires_otp(user)
+
+
+session_config = dict([(key[8:], value) for key, value in
+                       settings['beaker'].items() if
+                       key.startswith('session.')])
+session_config['use_cookies'] = False
 
 
 class Client(Controller):
@@ -92,32 +101,19 @@ class Client(Controller):
     def create_session(self, username, password, otp=None):
         user = self.authenticate(username, password, otp)
         prefix = otp[:-32] if otp else None
-        user_session = UserSession(user.name, prefix)
-        self.session.add(user_session)
-        # Prevent loading the user twice
-        user_session._user = user
+        user_session = UserSession({}, **session_config)
+        user_session['user_id'] = user.id
+        user_session['username'] = user.name
+        user_session['prefix'] = prefix if prefix else None
+        user_session.save()
         return user_session
 
     def get_session(self, sessionId):
-        try:
-            user_session = self.session.query(UserSession).filter(
-                UserSession.sessionId == sessionId).one()
-        except Exception:
-            raise ValueError("Session not found!")
-
-        user_session.update_used()
-
-        if not user_session.is_valid:
+        user_session = UserSession({}, id=sessionId, **session_config)
+        if user_session.is_new:
             user_session.delete()
-            raise ValueError("Session is expired!")
-
+            raise ValueError("Session not found!")
         return user_session
-
-    def clear_sessions(self, user=None):
-        query = self.session.query(UserSession)
-        if user:
-            query = query.filter(UserSession.username == user.name)
-        query.delete()
 
     def create_attribute(self, *args, **kwargs):
         attribute = AttributeType(*args, **kwargs)
@@ -129,7 +125,7 @@ class Client(Controller):
 
     def generate_revocation(self, prefix):
         yubikey = self.auth.get_yubikey(prefix)
-        code = UserSession(REVOKE_KEY).sessionId
+        code = base64.urlsafe_b64encode(uuid.uuid4().get_bytes())
         yubikey.attributes[REVOKE_KEY] = code
         return code
 

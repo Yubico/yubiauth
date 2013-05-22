@@ -31,7 +31,6 @@ from wsgiref.simple_server import make_server
 from webob import exc
 import re
 
-from yubiauth import settings
 from yubiauth.core import YubiAuth
 from yubiauth.util.rest import (
     REST_API, Route, no_content, json_response, json_error, extract_params)
@@ -46,18 +45,18 @@ ID_RE = re.compile(r'^%s$' % ID_PATTERN)
 
 
 class CoreAPI(REST_API):
-    __user__ = r'^users/(%s|%s)' % (ID_PATTERN, USERNAME_PATTERN)
+    __user__ = r'^/users/(%s|%s)' % (ID_PATTERN, USERNAME_PATTERN)
     __user_attribute__ = __user__ + r'/attributes/(%s)' % ATTRIBUTE_KEY_PATTERN
     __user_yubikey__ = __user__ + r'/yubikeys/(%s)' % YUBIKEY_PATTERN
-    __yubikey__ = r'^yubikeys/(%s)' % YUBIKEY_PATTERN
+    __yubikey__ = r'^/yubikeys/(%s)' % YUBIKEY_PATTERN
     __yubikey_attribute__ = __yubikey__ + r'/attributes/(%s)' %\
         ATTRIBUTE_KEY_PATTERN
     __user_yubikey_attribute__ = __user_yubikey__ + r'/attributes/(%s)' %\
         ATTRIBUTE_KEY_PATTERN
 
     __routes__ = [
-        Route(r'^user$', 'find_user'),
-        Route(r'^users$', get='list_users', post='create_user'),
+        Route(r'^/user$', 'find_user'),
+        Route(r'^/users$', get='list_users', post='create_user'),
         Route(__user__ + r'$', get='show_user', delete='delete_user'),
         Route(__user__ + r'/reset$', post='reset_password'),
         Route(__user__ + r'/rename$', post='rename_user'),
@@ -141,7 +140,7 @@ class CoreAPI(REST_API):
         try:
             user = request.auth.create_user(username, password)
             request.auth.commit()
-            url = '%s/users/%d' % (self._base_path, user.id)
+            url = '%s/users/%d' % (request.script_name, user.id)
             return json_response({
                 'id': user.id,
                 'name': user.name
@@ -282,7 +281,7 @@ class CoreAPI(REST_API):
         })
 
 
-application = CoreAPI('/%s/core' % settings['rest_path'])
+application = CoreAPI()
 
 
 if __name__ == '__main__':

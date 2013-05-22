@@ -39,35 +39,31 @@ from yubiauth.util.static import DirectoryApp
 from yubiauth.config import settings
 
 STATIC_ASSETS = ['js', 'css', 'img', 'favicon.ico']
-STATIC_PATH = settings['rest_path']
 
 
 class YubiAuthAPI(object):
     def __init__(self):
-        self.base = '/%s' % settings['rest_path']
         base_dir = os.path.dirname(__file__)
         static_dir = os.path.join(base_dir, 'static')
-        self.static_app = DirectoryApp(static_dir)
+        static_app = DirectoryApp(static_dir)
 
-        self._apis = [
-            core_api,
-            client_api,
-            client_ui
-        ]
+        self._apps = {
+            'core': core_api,
+            'client': client_api,
+            'ui': client_ui,
+            'static': static_app
+        }
 
     @wsgify
     def __call__(self, request):
-        if request.path_info.startswith(self.base):
-            path = request.path_info[len(self.base):]
-            base = next((x for x in path.split('/') if x), None)
-            if base in STATIC_ASSETS:
-                trimmed = ''
-                while trimmed != self.base:
-                    trimmed += '/' + request.path_info_pop()
-                return request.get_response(self.static_app)
-            for api in self._apis:
-                if request.path.startswith(api._base_path):
-                    return api(request)
+        base_path = request.environ.get('BASE_PATH', '/')
+        if not request.script_name and request.path_info.startswith(base_path):
+            request.script_name = base_path
+            request.path_info = request.path_info[len(base_path):]
+
+        app_key = request.path_info_pop()
+        if app_key in self._apps:
+            return request.get_response(self._apps[app_key])
 
         raise exc.HTTPNotFound
 

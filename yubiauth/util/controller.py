@@ -44,6 +44,14 @@ class Controller(object):
     def __del__(self):
         self.session.close()
 
+    def __enter__(self):
+        return self
+
+    def __exit__(self, type, value, traceback):
+        if not isinstance(value, Exception):
+            self.commit()
+        self.session.close()
+
     def commit(self):
         """
         Commits any unchanged modifications to the database.

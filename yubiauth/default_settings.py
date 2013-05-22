@@ -27,11 +27,6 @@ YKVAL_CLIENT_SECRET = '5Vm3Zp2mUTQHMo1DeG9tdojpc1Y='
 # this, leave it to False.
 ALLOW_EMPTY_PASSWORDS = False
 
-# Base path to host REST API from.
-# The default, 'yubiauth', will serve pages with URLs like
-# http://<host>/yubiauth/users and so on.
-REST_PATH = 'yubiauth'
-
 # Use a YubiHSM for increased security
 # This requires the pyhsm package, and should be used with the yhsm-daemon
 # utility that comes with it.
@@ -82,3 +77,12 @@ AUTO_PROVISION = True
 # When set to True, allow users authenticating with a YubiKey to omit their
 # username, using the OTP to do a lookup on the username.
 YUBIKEY_IDENTIFICATION = False
+
+# Beaker configuration, which is used for session management.
+BEAKER = {
+    'session.lock_dir': '/tmp/cache/lock',
+    'session.type': 'ext:database',
+    'session.auto': True,
+    'session.key': 'YubiAuth-Session',
+    'session.secret': 'LGnYUI5ZeSQ5ooGykySO9vMHKKyGwoC1',
+}
