@@ -28,6 +28,8 @@
 #
 
 from wsgiref.simple_server import make_server
+from webob import exc
+from beaker.middleware import SessionMiddleware
 from jinja2 import Environment, FileSystemLoader
 from wtforms import Form
 from wtforms.fields import TextField, PasswordField
@@ -35,12 +37,17 @@ from wtforms.validators import Optional, Required
 
 from yubiauth.util.rest import Route, extract_params
 from yubiauth.client.rest import SessionAPI, require_session
+from yubiauth import settings
 
 import os
 
 base_dir = os.path.dirname(__file__)
 template_dir = os.path.join(base_dir, 'templates')
 env = Environment(loader=FileSystemLoader(template_dir))
+
+
+def redirect(request, target):
+    return exc.HTTPSeeOther(location=request.relative_url(target, True))
 
 
 class LoginForm(Form):
@@ -65,37 +72,38 @@ class ClientUI(SessionAPI):
 
     def render(self, request, tmpl, **data):
         template = env.get_template('%s.html' % tmpl)
-        data['base_url'] = '%s' % request.environ.get('yubiauth.static', '/')
+        data['base_url'] = '%s/' % request.script_name
         data['messages'] = self._messages
         return template.render(data)
 
-    @extract_params('username?', 'password?', 'otp?')
-    def login(self, request, username=None, password=None, otp=None):
+    @extract_params('username?', 'password?', 'yubikey?')
+    def login(self, request, username=None, password=None, yubikey=None):
         form = LoginForm(request.params)
         if request.method == 'POST' and form.validate():
+            client = request.environ['yubiauth.client']
             try:
-                session = request.client.create_session(username, password,
-                                                        otp)
-                request.session = session
-                return 'OK'
+                session = client.create_session(username, password, yubikey)
+                request.environ['beaker.session'].update(session)
+                session.delete()
+                return redirect(request, 'status')
             except Exception:
                 self.add_message('Login failed!', 'error')
-                if request.session:
-                    request.session.delete()
+                request.environ['beaker.session'].delete()
 
         return self.render(request, 'login', form=form)
 
     @require_session
     def status(self, request):
-        return 'ok'
+        return self.render(request, 'status')
 
     @require_session
     def logout(self, request):
-        request.session.delete()
-        return ''
+        request.environ['beaker.session'].delete()
+        return redirect(request, 'login')
 
 
 application = ClientUI()
+application = SessionMiddleware(application, settings['beaker'])
 
 if __name__ == '__main__':
     httpd = make_server('localhost', 8080, application)
