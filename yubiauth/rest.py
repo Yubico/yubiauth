@@ -32,11 +32,10 @@ from wsgiref.simple_server import make_server
 from webob import exc
 from webob.dec import wsgify
 
-from yubiauth.core.rest import application as core_api
-from yubiauth.client.rest import application as client_api
-from yubiauth.ui.web import application as client_ui
-from yubiauth.util.static import DirectoryApp
-from yubiauth.config import settings
+from yubiauth.core.rest import application as core_rest
+from yubiauth.client.rest import application as client_rest
+from yubiauth.client.web import application as client_web
+from yubiauth.util.static import DirectoryApp, FileApp
 
 STATIC_ASSETS = ['js', 'css', 'img', 'favicon.ico']
 
@@ -46,12 +45,14 @@ class YubiAuthAPI(object):
         base_dir = os.path.dirname(__file__)
         static_dir = os.path.join(base_dir, 'static')
         static_app = DirectoryApp(static_dir)
+        favicon_app = FileApp(os.path.join(static_dir, 'favicon.ico'))
 
         self._apps = {
-            'core': core_api,
-            'client': client_api,
-            'ui': client_ui,
-            'static': static_app
+            'core': core_rest,
+            'client': client_rest,
+            'ui': client_web,
+            'static': static_app,
+            'favicon.ico': favicon_app
         }
 
     @wsgify

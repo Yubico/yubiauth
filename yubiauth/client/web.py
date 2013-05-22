@@ -35,7 +35,6 @@ from wtforms.validators import Optional, Required
 
 from yubiauth.util.rest import Route, extract_params
 from yubiauth.client.rest import SessionAPI, require_session
-from yubiauth import settings
 
 import os
 
@@ -52,9 +51,9 @@ class LoginForm(Form):
 
 class ClientUI(SessionAPI):
     __routes__ = [
-        Route(r'^login$', 'login'),
-        Route(r'^logout$', 'logout'),
-        Route(r'^status$', 'status'),
+        Route(r'^/login$', 'login'),
+        Route(r'^/logout$', 'logout'),
+        Route(r'^/status$', 'status'),
     ]
 
     def add_message(self, message, level=None):
@@ -64,9 +63,9 @@ class ClientUI(SessionAPI):
         super(ClientUI, self)._call_setup(request)
         self._messages = []
 
-    def render(self, tmpl, **data):
+    def render(self, request, tmpl, **data):
         template = env.get_template('%s.html' % tmpl)
-        data['base_url'] = '/%s/' % settings['rest_path']
+        data['base_url'] = '%s' % request.environ.get('yubiauth.static', '/')
         data['messages'] = self._messages
         return template.render(data)
 
@@ -84,7 +83,7 @@ class ClientUI(SessionAPI):
                 if request.session:
                     request.session.delete()
 
-        return self.render('login', form=form)
+        return self.render(request, 'login', form=form)
 
     @require_session
     def status(self, request):
@@ -96,7 +95,7 @@ class ClientUI(SessionAPI):
         return ''
 
 
-application = ClientUI('/%s/ui' % settings['rest_path'])
+application = ClientUI()
 
 if __name__ == '__main__':
     httpd = make_server('localhost', 8080, application)
