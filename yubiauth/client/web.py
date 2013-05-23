@@ -29,17 +29,17 @@
 
 from wsgiref.simple_server import make_server
 from webob import exc
-from beaker.middleware import SessionMiddleware
 from jinja2 import Environment, FileSystemLoader
 from wtforms import Form
 from wtforms.fields import TextField, PasswordField
-from wtforms.validators import Optional, Required
+from wtforms.validators import Optional, Required, EqualTo
 
-from yubiauth.util.rest import Route, extract_params
-from yubiauth.client.rest import SessionAPI, require_session
-from yubiauth import settings
+from yubiauth.config import settings
+from yubiauth.util.rest import REST_API, Route, extract_params
+from yubiauth.client.rest import session_api, require_session
 
 import os
+import logging as log
 
 base_dir = os.path.dirname(__file__)
 template_dir = os.path.join(base_dir, 'templates')
@@ -56,9 +56,21 @@ class LoginForm(Form):
     yubikey = TextField('YubiKey', [Optional()])
 
 
-class ClientUI(SessionAPI):
+class RegisterForm(Form):
+    username = TextField('Username', [Required()])
+    password = PasswordField('Password', [Required()])
+    verify_password = PasswordField(
+        'Repeat password',
+        [Required(), EqualTo('password', 'Passwords do not match!')]
+    )
+    yubikey = TextField('YubiKey', [Optional()])
+
+
+class ClientUI(REST_API):
     __routes__ = [
-        Route(r'^/login$', 'login'),
+        Route(r'^/$', 'index'),
+        Route(r'^/login$', post='login'),
+        Route(r'^/register$', post='register'),
         Route(r'^/logout$', 'logout'),
         Route(r'^/status$', 'status'),
     ]
@@ -76,10 +88,37 @@ class ClientUI(SessionAPI):
         data['messages'] = self._messages
         return template.render(data)
 
+    def index(self, request, login_form=LoginForm(),
+              register_form=RegisterForm()):
+        login_form.yubikey.data = None
+        if settings['registration']:
+            return self.render(request, 'register', login_form=login_form,
+                               register_form=register_form)
+        else:
+            return self.render(request, 'login', login_form=login_form)
+
+    def register(self, request):
+        register_form = RegisterForm(request.params)
+        if register_form.validate():
+            client = request.environ['yubiauth.client']
+            username = register_form.username.data
+            password = register_form.password.data
+            otp = register_form.yubikey.data
+            if not otp:
+                otp = None
+            try:
+                user = client.register(username, password, otp)
+                return self.render(request, 'created', user=user,
+                                   login_form=LoginForm())
+            except Exception, e:
+                self.add_message('Account registration failed!', 'error')
+                log.warn(e)
+        return self.index(request, register_form=register_form)
+
     @extract_params('username?', 'password?', 'yubikey?')
     def login(self, request, username=None, password=None, yubikey=None):
-        form = LoginForm(request.params)
-        if request.method == 'POST' and form.validate():
+        login_form = LoginForm(request.params)
+        if login_form.validate():
             client = request.environ['yubiauth.client']
             try:
                 session = client.create_session(username, password, yubikey)
@@ -89,21 +128,19 @@ class ClientUI(SessionAPI):
             except Exception:
                 self.add_message('Login failed!', 'error')
                 request.environ['beaker.session'].delete()
+        return self.index(request, login_form=login_form)
 
-        return self.render(request, 'login', form=form)
-
-    @require_session
+    @require_session()
     def status(self, request):
         return self.render(request, 'status')
 
-    @require_session
+    @require_session()
     def logout(self, request):
         request.environ['beaker.session'].delete()
-        return redirect(request, 'login')
+        return redirect(request, '')
 
 
-application = ClientUI()
-application = SessionMiddleware(application, settings['beaker'])
+application = session_api(ClientUI())
 
 if __name__ == '__main__':
     httpd = make_server('localhost', 8080, application)

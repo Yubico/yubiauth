@@ -1,0 +1,18 @@
+{% extends "login.html" %}
+
+
+{% from "form.html" import form_fieldset %}
+
+{% block title %}Login/Register account{% endblock %}
+
+{% block content %}
+
+{{ super() }}
+
+<h1>Register Account</h1>
+
+<form action="register" method="post">
+{{ form_fieldset(register_form) }}
+<input type="submit" value="Register" class="btn btn-primary"/>
+</form>
+{% endblock %}

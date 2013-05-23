@@ -136,7 +136,10 @@ class Client(Controller):
             raise ValueError('Invalid revocation code!')
         keys[0].enabled = False
 
-    def sign_up(self, username, password, otp=None, attributes={}):
+    def register(self, username, password, otp=None, attributes={}):
+        if not settings['registration']:
+            raise ValueError('User registration disabled!')
+
         validate_attributes(self.get_attributes(), attributes)
 
         if otp and not validate_otp(otp):
@@ -146,6 +149,7 @@ class Client(Controller):
         user.attributes.update(attributes)
         if otp:
             user.assign_yubikey(otp)
+        return user
 
 
 def validate_attributes(user_attrs, supplied_attrs, perm_level=PERMS['USER']):

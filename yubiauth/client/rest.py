@@ -28,11 +28,12 @@
 #
 
 __all__ = [
-    'SessionAPI',
+    'session_api',
     'require_session'
 ]
 
 from wsgiref.simple_server import make_server
+from webob.dec import wsgify
 from beaker.middleware import SessionMiddleware
 from yubiauth.client import Client
 from yubiauth.util import validate_otp
@@ -46,30 +47,24 @@ SESSION_HEADER = 'X-YubiAuth-Session'
 REVOKE_ATTRIBUTE = '_REVOKE'
 
 
-class SessionAPI(REST_API):
-    """
-    Base class for REST_APIS which interact with the users session.
-    Ensures that a Client instance is available under the yubikey.client key
-    in the environ dict.
-
-    Allows the require_session decorator to be used on its methods, which
-    validates the session and adds the current User to the 'yubiauth.user' key
-    of the environ dict.
-    """
-    def __init__(self, *args, **kwargs):
-        super(SessionAPI, self).__init__(*args, **kwargs)
-
-        cls = self.__class__
-        setattr(cls, '__call__', with_client(self))
-        for name, method in cls.__dict__.items():
-            if hasattr(method, 'requires_session'):
-                setattr(cls, name, real_require_session(self, method.orig))
-
-    def session_required(self, request):
-        return json_error('Session required!')
+@wsgify.middleware
+def ClientMiddleware(request, app):
+    with Client() as client:
+        request.environ['yubiauth.client'] = client
+        response = request.get_response(app)
+    del request.environ['yubiauth.client']
+    return response
 
 
-def require_session(func):
+def session_api(app):
+    for name, method in app.__class__.__dict__.items():
+        if hasattr(method, 'requires_session'):
+            setattr(app, name, real_require_session(app, method))
+
+    return ClientMiddleware(SessionMiddleware(app, settings['beaker']))
+
+
+def require_session(error_handler=lambda *x: json_error('Session required!')):
     """
     Used to decorate a method on a SessionAPI to ensure that the user has
     a valid UserSession when entering the method. If not, an error will be
@@ -77,38 +72,31 @@ def require_session(func):
 
     To customize the error, override the session_required method of the api.
     """
-    def placeholder(self, *args, **kwargs):
-        raise Exception('require_session can only be used on a SessionAPI!')
-    placeholder.requires_session = True
-    placeholder.orig = func
-    return placeholder
+    def inner(func):
+        def placeholder(self, *args, **kwargs):
+            raise Exception('require_session requires session_api!')
+        placeholder.requires_session = True
+        placeholder.orig = func
+        placeholder.error_handler = error_handler
+        return placeholder
+    return inner
 
 
-def real_require_session(app, func):
-    def inner(self, request, *args, **kwargs):
+def real_require_session(app, placeholder):
+    def inner(request, *args, **kwargs):
         try:
             session = request.environ['beaker.session']
             client = request.environ['yubiauth.client']
             user_id = session.get('user_id', None)
             request.environ['yubiauth.user'] = client.auth.get_user(user_id)
-            return func(self, request, *args, **kwargs)
+            return placeholder.orig(app, request, *args, **kwargs)
         except Exception, e:
             log.warn(e)
-            return app.session_required(request)
+            return placeholder.error_handler(request, e)
     return inner
 
 
-def with_client(app):
-    orig_call = app.__call__
-
-    def inner(self, environ, start_response):
-        with Client() as client:
-            environ['yubiauth.client'] = client
-            return orig_call(environ, start_response)
-    return inner
-
-
-class ClientAPI(SessionAPI):
+class ClientAPI(REST_API):
     __routes__ = [
         Route(r'^/login$', 'login'),
         Route(r'^/authenticate$', 'authenticate'),
@@ -141,16 +129,16 @@ class ClientAPI(SessionAPI):
             log.warn(e)
             return json_error('Invalid credentials!')
 
-    @require_session
+    @require_session()
     def logout(self, request):
         request.environ['beaker.session'].delete()
         return json_response(True)
 
-    @require_session
+    @require_session()
     def status(self, request):
         return json_response(request.environ['beaker.session']._session())
 
-    @require_session
+    @require_session()
     @extract_params('oldpass', 'newpass', 'otp?')
     def change_password(self, request, oldpass, newpass, otp=None):
         client = request.environ['yubiauth.client']
@@ -162,7 +150,7 @@ class ClientAPI(SessionAPI):
         except:
             return json_error('Invalid credentials!')
 
-    @require_session
+    @require_session()
     @extract_params('yubikey', 'password', 'otp?')
     def assign_yubikey(self, request, yubikey, password, otp=None):
         client = request.environ['yubiauth.client']
@@ -178,7 +166,7 @@ class ClientAPI(SessionAPI):
         except:
             return json_error('Invalid credentials!')
 
-    @require_session
+    @require_session()
     @extract_params('otp')
     def generate_revocation(self, request, otp):
         client = request.environ['yubiauth.client']
@@ -198,8 +186,7 @@ class ClientAPI(SessionAPI):
             return json_error('Invalid code!')
 
 
-application = ClientAPI()
-application = SessionMiddleware(application, settings['beaker'])
+application = session_api(ClientAPI())
 
 if __name__ == '__main__':
     httpd = make_server('localhost', 8080, application)

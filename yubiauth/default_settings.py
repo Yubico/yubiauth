@@ -78,6 +78,9 @@ AUTO_PROVISION = True
 # username, using the OTP to do a lookup on the username.
 YUBIKEY_IDENTIFICATION = False
 
+# When set to True, allow users to register accounts via the client API.
+ENABLE_USER_REGISTRATION = False
+
 # Beaker configuration, which is used for session management.
 BEAKER = {
     'session.lock_dir': '/tmp/cache/lock',

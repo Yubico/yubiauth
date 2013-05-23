@@ -5,27 +5,16 @@
 {% block title %}Login{% endblock %}
 
 {% block content %}
-<h1>Login</h1>
-<p>Please login</p>
 
-<form action="login" method="post" class="span4">
-	<div class="row-fluid">
-		<div class="span6">
-			{{ form.username(class='input-block-level', placeholder='Username') }}
-			{{ form_field_errors(form.username) }}
-		</div>
-		<div class="span6">
-			{{ form.password(class='input-block-level', placeholder='Password') }}
-			{{ form_field_errors(form.password) }}
-		</div>
-	</div>
-	<div class="row-fluid">
-		<div class="form-inline">
-			{{ form.yubikey(class='input-xlarge', placeholder='YubiKey OTP') }}
-			<input type="submit" value="Login" class="btn btn-primary"/>
-		</div>
-	</div>
-</div>
+<h1>Login</h1>
+
+<form action="login" method="post" class="form-inline">
+	{{ login_form.username(placeholder='Username') }}
+	{{ form_field_errors(login_form.username) }}
+	{{ login_form.password(placeholder='Password') }}
+	{{ form_field_errors(login_form.password) }}
+	{{ login_form.yubikey(placeholder='YubiKey OTP') }}
+	<input type="submit" value="Login" class="btn btn-primary"/>
 </form>
 
 {% endblock %}
