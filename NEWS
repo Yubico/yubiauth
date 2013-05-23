@@ -2,6 +2,10 @@
 
   * Added examples/ with FreeRADIUS example.
 
+  * Use Beaker for session management.
+
+  * Added basic client UI for user registration.
+
 * Version 0.2.5 (released 2013-05-17)
 
   * Fixed bug where custom YKVAL URLs were ignored.
