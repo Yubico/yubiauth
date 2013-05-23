@@ -132,7 +132,8 @@ class ClientUI(REST_API):
 
     @require_session()
     def status(self, request):
-        return self.render(request, 'status')
+        user = request.environ['yubiauth.user']
+        return self.render(request, 'status', user=user)
 
     @require_session()
     def logout(self, request):

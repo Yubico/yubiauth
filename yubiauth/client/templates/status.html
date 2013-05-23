@@ -1,11 +1,17 @@
-{% extends "layout.html" %}
+{% extends "logged_in.html" %}
 
 {% block title %}Status{% endblock %}
 
 {% block content %}
-<h1>Status</h1>
-<p>You are logged in!</p>
+{{ super() }}
 
-<a href="logout">Log out</a>
+<h1>Status</h1>
+<p>You are logged as {{ user.name }}!</p>
+YubiKeys:
+<ul>
+	{% for yubikey in user.yubikeys %}
+	<li>{{ yubikey }}</li>
+	{% endfor %}
+</ul>
 
 {% endblock %}
