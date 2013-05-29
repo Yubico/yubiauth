@@ -27,14 +27,18 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 
+__all__ = [
+    'application'
+]
+
 from wsgiref.simple_server import make_server
 from webob import exc
 from jinja2 import Environment, FileSystemLoader
 from wtforms import Form
 from wtforms.fields import TextField, PasswordField
-from wtforms.validators import Optional, Required, EqualTo
-
+from wtforms.validators import Optional, Required, EqualTo, Regexp
 from yubiauth.config import settings
+from yubiauth.util import validate_otp
 from yubiauth.util.rest import REST_API, Route, extract_params
 from yubiauth.client.rest import session_api, require_session
 
@@ -45,6 +49,8 @@ base_dir = os.path.dirname(__file__)
 template_dir = os.path.join(base_dir, 'templates')
 env = Environment(loader=FileSystemLoader(template_dir))
 
+YUBIKEY_OTP = r'[cbdefghijklnrtuv]{32,64}'
+
 
 def redirect(request, target):
     return exc.HTTPSeeOther(location=request.relative_url(target, True))
@@ -53,7 +59,7 @@ def redirect(request, target):
 class LoginForm(Form):
     username = TextField('Username', [Required()])
     password = PasswordField('Password', [Required()])
-    yubikey = TextField('YubiKey', [Optional()])
+    yubikey = TextField('YubiKey', [Optional(), Regexp(YUBIKEY_OTP)])
 
 
 class RegisterForm(Form):
@@ -63,7 +69,25 @@ class RegisterForm(Form):
         'Repeat password',
         [Required(), EqualTo('password', 'Passwords do not match!')]
     )
-    yubikey = TextField('YubiKey', [Optional()])
+    yubikey = TextField('YubiKey', [Optional(), Regexp(YUBIKEY_OTP)])
+
+
+class ReauthenticateForm(Form):
+    legend = "Re-authenticate"
+    description = "Please re-authenticate to complete this action"
+    password = PasswordField('Password', [Required()])
+    otp = TextField('YubiKey OTP', [Optional(), Regexp(YUBIKEY_OTP)])
+
+    def __init__(self, request):
+        super(ReauthenticateForm, self).__init__(request.params)
+        user = request.environ['yubiauth.user']
+        if len(user.yubikeys) == 0:
+            del self.otp
+
+
+class AssignYubikeyForm(Form):
+    legend = "Assign new YubiKey"
+    yubikey = TextField('New Yubikey OTP', [Regexp(YUBIKEY_OTP)])
 
 
 class ClientUI(REST_API):
@@ -73,6 +97,7 @@ class ClientUI(REST_API):
         Route(r'^/register$', post='register'),
         Route(r'^/logout$', 'logout'),
         Route(r'^/status$', 'status'),
+        Route(r'^/assign_yubikey$', post='assign_yubikey'),
     ]
 
     def add_message(self, message, level=None):
@@ -81,6 +106,9 @@ class ClientUI(REST_API):
     def _call_setup(self, request):
         super(ClientUI, self)._call_setup(request)
         self._messages = []
+
+    def session_required(self, request, e):
+        return self.render(request, 'session_required')
 
     def render(self, request, tmpl, **data):
         template = env.get_template('%s.html' % tmpl)
@@ -130,12 +158,35 @@ class ClientUI(REST_API):
                 request.environ['beaker.session'].delete()
         return self.index(request, login_form=login_form)
 
-    @require_session()
+    @require_session
     def status(self, request):
         user = request.environ['yubiauth.user']
         return self.render(request, 'status', user=user)
 
-    @require_session()
+    @require_session
+    @extract_params('yubikey', 'password?', 'otp?')
+    def assign_yubikey(self, request, yubikey, password=None, otp=None):
+        assign_form = AssignYubikeyForm(request.params)
+        reauthenticate_form = ReauthenticateForm(request)
+        user = request.environ['yubiauth.user']
+        if assign_form.validate() and reauthenticate_form.validate():
+            client = request.environ['yubiauth.client']
+            try:
+                client.authenticate(user.name, password, otp)
+                prefix = yubikey[:-32]
+                if not validate_otp(yubikey):
+                    self.add_message('Invalid OTP for new YubiKey!')
+                if not prefix in user.yubikeys:
+                    user.assign_yubikey(prefix)
+                return redirect(request, 'status')
+            except Exception as e:
+                log.info(e)
+                self.add_message('Invalid credentials!')
+
+        return self.render(request, 'assign_yubikey', user=user,
+                           fieldsets=[assign_form, reauthenticate_form])
+
+    @require_session
     def logout(self, request):
         request.environ['beaker.session'].delete()
         return redirect(request, '')
