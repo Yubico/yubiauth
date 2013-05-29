@@ -14,10 +14,12 @@
 	{% endfor %}
 </ul>
 
-<form action="assign_yubikey" method="post" class="form-inline">
-	<label for="yubikey">Assign new YubiKey to account</label><br />
+<form action="assign_yubikey?noauth" method="post" class="form-inline">
+	<label for="yubikey">Assign a new YubiKey to your account</label><br />
 	<input id="yubikey" type="text" name="yubikey" class="span4" placeholder="Enter OTP from new YubiKey" />
 	<input type="submit" class="btn" value="Assign" />
 </form>
+
+<a href="change_password" class="btn">Change password</a>
 
 {% endblock %}

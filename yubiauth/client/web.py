@@ -75,19 +75,40 @@ class RegisterForm(Form):
 class ReauthenticateForm(Form):
     legend = "Re-authenticate"
     description = "Please re-authenticate to complete this action"
-    password = PasswordField('Password', [Required()])
+    password = PasswordField('Password')
     otp = TextField('YubiKey OTP', [Optional(), Regexp(YUBIKEY_OTP)])
 
     def __init__(self, request):
         super(ReauthenticateForm, self).__init__(request.params)
         user = request.environ['yubiauth.user']
+        self.username = user.name
+        self.client = request.environ['yubiauth.client']
         if len(user.yubikeys) == 0:
             del self.otp
+
+    def authenticate(self):
+        password = self.password.data
+        otp = self.data.get('otp', None)
+        try:
+            self.client.authenticate(self.username, password, otp)
+            return True
+        except:
+            pass
+        return False
 
 
 class AssignYubikeyForm(Form):
     legend = "Assign new YubiKey"
     yubikey = TextField('New Yubikey OTP', [Regexp(YUBIKEY_OTP)])
+
+
+class ChangePasswordForm(Form):
+    legend = "Change password"
+    new_password = PasswordField('New Password', [Required()])
+    verify_password = PasswordField(
+        'Repeat password',
+        [Required(), EqualTo('new_password', 'Passwords do not match!')]
+    )
 
 
 class ClientUI(REST_API):
@@ -98,6 +119,7 @@ class ClientUI(REST_API):
         Route(r'^/logout$', 'logout'),
         Route(r'^/status$', 'status'),
         Route(r'^/assign_yubikey$', post='assign_yubikey'),
+        Route(r'^/change_password$', 'change_password'),
     ]
 
     def add_message(self, message, level=None):
@@ -164,29 +186,45 @@ class ClientUI(REST_API):
         return self.render(request, 'status', user=user)
 
     @require_session
-    @extract_params('yubikey', 'password?', 'otp?')
-    def assign_yubikey(self, request, yubikey, password=None, otp=None):
+    @extract_params('noauth?')
+    def assign_yubikey(self, request, noauth=None):
         assign_form = AssignYubikeyForm(request.params)
-        reauthenticate_form = ReauthenticateForm(request)
+        auth_form = ReauthenticateForm(request)
         user = request.environ['yubiauth.user']
-        if assign_form.validate() and reauthenticate_form.validate():
-            client = request.environ['yubiauth.client']
-            try:
-                client.authenticate(user.name, password, otp)
-                prefix = yubikey[:-32]
-                if not validate_otp(yubikey):
-                    self.add_message('Invalid OTP for new YubiKey!')
-                if not prefix in user.yubikeys:
-                    user.assign_yubikey(prefix)
-                return redirect(request, 'status')
-            except Exception as e:
-                log.info(e)
-                self.add_message('Invalid credentials!')
+        if noauth is not None or not assign_form.validate():
+            pass
+        elif auth_form.validate() and auth_form.authenticate():
+            yubikey = assign_form.yubikey.data
+            prefix = yubikey[:-32]
+            if not validate_otp(yubikey):
+                self.add_message('Invalid OTP for new YubiKey!', 'error')
+            if not prefix in user.yubikeys:
+                user.assign_yubikey(prefix)
+            return redirect(request, 'status')
+        else:
+            self.add_message('Invalid credentials!', 'error')
 
         return self.render(request, 'assign_yubikey', user=user,
-                           fieldsets=[assign_form, reauthenticate_form])
+                           fieldsets=[assign_form, auth_form])
 
     @require_session
+    def change_password(self, request):
+        password_form = ChangePasswordForm(request.params)
+        auth_form = ReauthenticateForm(request)
+        user = request.environ['yubiauth.user']
+        if request.method == 'POST' and password_form.validate() and \
+                auth_form.validate():
+            if auth_form.authenticate():
+                new_password = password_form.new_password.data
+                user.set_password(new_password)
+                return redirect(request, 'status')
+            else:
+                self.add_message('Invalid credentials!', 'error')
+
+        return self.render(request, 'change_password', user=user,
+                           fieldsets=[password_form, auth_form])
+
+    @require_session(error_handler=lambda req, *x: redirect(req, ''))
     def logout(self, request):
         request.environ['beaker.session'].delete()
         return redirect(request, '')
