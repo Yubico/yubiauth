@@ -31,8 +31,8 @@ __all__ = [
     'model',
     'controller',
     'rest',
-    #functions:
+    'MODHEX',
     'validate_otp'
 ]
 
-from yubiauth.util.utils import validate_otp
+from yubiauth.util.utils import MODHEX, validate_otp

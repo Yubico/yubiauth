@@ -1,0 +1,27 @@
+{% extends "logged_in.html" %}
+
+{% block title %}YubiKey: {{ yubikey.prefix }}{% endblock %}
+
+{% block content %}
+{{ super() }}
+
+<h1>YubiKey: {{ yubikey.prefix }}</h1>
+
+<dl class="dl-horizontal">
+	<dt>Prefix</dt>
+	<dd>{{ yubikey.prefix }}</dd>
+	<dt>Enabled</dt>
+	<dd>{{ yubikey.enabled }}</dd>
+</dl>
+
+<h2>Actions</h2>
+{% if yubikey.enabled %}
+<a href="yubikey/{{ yubikey.prefix }}/disable" class="btn">Disable YubiKey</a>
+{% else %}
+<a href="yubikey/{{ yubikey.prefix }}/enable" class="btn">Enable YubiKey</a>
+{% endif %}
+
+<a href="yubikey/{{ yubikey.prefix }}/generate" class="btn">Generate revocation code</a>
+<p>A revocation code can be used to disable a YubiKey if you are unable to access your account. Once generated, be sure to save the revocation code in a safe place. Generating a new code will invalidate any previously generated code.</p>
+
+{% endblock %}

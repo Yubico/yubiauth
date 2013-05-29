@@ -9,8 +9,8 @@
 <p>You are logged as {{ user.name }}!</p>
 <h2>YubiKeys</h2>
 <ul>
-	{% for yubikey in user.yubikeys %}
-	<li>{{ yubikey }}</li>
+	{% for prefix, yubikey in user.yubikeys.iteritems() %}
+	<li><a href="yubikey/{{ prefix }}">{{ prefix }}</a> - {% if yubikey.enabled %}Enabled{% else %}Disabled{% endif %}</li>
 	{% endfor %}
 </ul>
 

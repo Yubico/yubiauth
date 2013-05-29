@@ -32,13 +32,14 @@ from webob import exc
 import re
 
 from yubiauth.core import YubiAuth
+from yubiauth.util import MODHEX
 from yubiauth.util.rest import (
     REST_API, Route, no_content, json_response, json_error, extract_params)
 
 ID_PATTERN = r'\d+'
 USERNAME_PATTERN = r'(?=.*[a-zA-Z])[-_a-zA-Z0-9]{3,}'
 PASSWORD_PATTERN = r'\S{3,}'
-YUBIKEY_PATTERN = r'[cbdefghijklnrtuv]{0,64}'
+YUBIKEY_PATTERN = r'[%s]{0,64}' % MODHEX
 ATTRIBUTE_KEY_PATTERN = r'[-_a-zA-Z0-9]+'
 
 ID_RE = re.compile(r'^%s$' % ID_PATTERN)

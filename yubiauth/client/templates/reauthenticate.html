@@ -1,0 +1,15 @@
+{% extends "logged_in.html" %}
+
+{% from "form.html" import render_form %}
+
+{% block title %}Re-authenticate{% endblock %}
+
+{% block content %}
+{{ super() }}
+
+<h1>Re-authentication required</h1>
+<p>The action you are trying to perform requires you to re-enter your user credentials.</p>
+
+{{ render_form(fieldsets, target) }}
+
+{% endblock %}

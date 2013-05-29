@@ -28,7 +28,8 @@
 #
 
 __all__ = [
-    'validate_otp'
+    'validate_otp',
+    'MODHEX'
 ]
 
 from yubiauth.config import settings
@@ -44,6 +45,8 @@ yubico_constants.API_URLS = [url[8:] if url.startswith('https://') else
 yubico = Yubico(settings['ykval_id'], settings['ykval_secret'],
                 use_https=use_https)
 
+
+MODHEX = 'cbdefghijklnrtuv'
 
 def validate_otp(otp):
     try:
