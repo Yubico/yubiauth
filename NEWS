@@ -1,3 +1,7 @@
+* Version 0.3.1 (released 2013-05-30)
+
+  * Bugfix release with include_package_data = True.
+
 * Version 0.3.0 (released 2013-05-30)
 
   * Added examples/ with FreeRADIUS example.

@@ -44,7 +44,7 @@ if 'hsm' in sys.argv:
 
 setup(
     name='yubiauth',
-    version='0.3.0',
+    version='0.3.1',
     author='Dain Nilsson',
     author_email='dain@yubico.com',
     maintainer='Yubico Open Source Maintainers',
@@ -52,6 +52,7 @@ setup(
     url='https://github.com/Yubico/yubiauth',
     license='BSD 2 clause',
     packages=['yubiauth', 'yubiauth.core', 'yubiauth.client', 'yubiauth.util'],
+    include_package_data=True,
     setup_requires=['nose>=1.0'],
     install_requires=['SQLAlchemy', 'WebOb', 'passlib', 'yubico-client',
                       'Beaker', 'Jinja2', 'WTForms'],
