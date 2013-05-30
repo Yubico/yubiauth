@@ -42,6 +42,7 @@ from yubiauth.config import settings
 from yubiauth.util import validate_otp, MODHEX
 from yubiauth.util.rest import REST_API, Route, extract_params
 from yubiauth.client.rest import session_api, require_session
+from yubiauth.client.controller import requires_otp
 
 import os
 import logging as log
@@ -97,7 +98,7 @@ class ReauthenticateForm(Form):
         self.prefix = prefix
         if self.prefix:
             self.otp.description = 'OTP from YubiKey with prefix: %s' % prefix
-        elif len(user.yubikeys) == 0:
+        elif not requires_otp(user):
             del self.otp
 
     def validate_otp(self, field):
@@ -134,16 +135,19 @@ class ClientUI(REST_API):
 
     __routes__ = [
         Route(r'^/$', 'index'),
+        Route(r'^/revoke$', 'revoke'),
         Route(r'^/login$', post='login'),
         Route(r'^/register$', post='register'),
         Route(r'^/logout$', 'logout'),
         Route(r'^/status$', 'status'),
         Route(r'^/assign_yubikey$', post='assign_yubikey'),
         Route(r'^/change_password$', 'change_password'),
+        Route(r'^/delete_account$', 'delete_account'),
         Route(__yubikey__ + r'$', 'yubikey'),
         Route(__yubikey__ + r'/enable$', 'yubikey_enable'),
         Route(__yubikey__ + r'/disable$', 'yubikey_disable'),
         Route(__yubikey__ + r'/generate$', 'yubikey_generate'),
+        Route(__yubikey__ + r'/unassign$', 'yubikey_unassign'),
     ]
 
     def add_message(self, message, level=None):
@@ -172,6 +176,16 @@ class ClientUI(REST_API):
                                register_form=register_form)
         else:
             return self.render(request, 'login', login_form=login_form)
+
+    def revoke(self, request):
+        if 'revoke' in request.params:
+            client = request.environ['yubiauth.client']
+            try:
+                client.revoke(request.params['revoke'])
+                self.add_message('YubiKey revoked!', 'success')
+            except:
+                self.add_message('Invalid revocation code!', 'error')
+        return self.render(request, 'revoke')
 
     def register(self, request):
         register_form = RegisterForm(request.params)
@@ -233,14 +247,29 @@ class ClientUI(REST_API):
                            fieldsets=[assign_form, auth_form])
 
     @require_session
+    @with_yubikey
+    def yubikey_unassign(self, request, yubikey):
+        auth_form = ReauthenticateForm(request)
+        if request.method == 'POST' and auth_form.validate():
+            if auth_form.authenticate():
+                user = request.environ['yubiauth.user']
+                del user.yubikeys[yubikey.prefix]
+                return redirect(request, 'status')
+            else:
+                self.add_message('Invalid credentials!', 'error')
+
+        return self.render(request, 'reauthenticate', yubikey=yubikey,
+                           fieldsets=[auth_form], target=request.path_info[1:])
+
+    @require_session
     def change_password(self, request):
         password_form = ChangePasswordForm(request.params)
         auth_form = ReauthenticateForm(request)
-        user = request.environ['yubiauth.user']
         if request.method == 'POST' and password_form.validate() and \
                 auth_form.validate():
             if auth_form.authenticate():
                 new_password = password_form.new_password.data
+                user = request.environ['yubiauth.user']
                 user.set_password(new_password)
                 return redirect(request, 'status')
             else:
@@ -248,6 +277,20 @@ class ClientUI(REST_API):
 
         return self.render(request, 'change_password',
                            fieldsets=[password_form, auth_form])
+
+    @require_session
+    def delete_account(self, request):
+        auth_form = ReauthenticateForm(request)
+        if request.method == 'POST' and auth_form.validate():
+            if auth_form.authenticate():
+                user = request.environ['yubiauth.user']
+                user.delete()
+                return redirect(request, '')
+            else:
+                self.add_message('Invalid credentials!', 'error')
+
+        return self.render(request, 'reauthenticate',
+                           fieldsets=[auth_form])
 
     @require_session(error_handler=lambda req, *x: redirect(req, ''))
     def logout(self, request):
@@ -265,6 +308,7 @@ class ClientUI(REST_API):
         auth_form = ReauthenticateForm(request, yubikey.prefix)
         if request.method == 'POST' and auth_form.validate():
             user = request.environ['yubiauth.user']
+            #Validate otp manually as the YubiKey might be disabled
             if user.validate_password(auth_form.password.data) and \
                     validate_otp(auth_form.otp.data):
                 yubikey.enabled = enabled
@@ -273,8 +317,7 @@ class ClientUI(REST_API):
                 self.add_message('Invalid credentials!', 'error')
 
         return self.render(request, 'reauthenticate', yubikey=yubikey,
-                           enabled=enabled, fieldsets=[auth_form],
-                           target=request.path_info[1:])
+                           fieldsets=[auth_form], target=request.path_info[1:])
 
     def yubikey_enable(self, *args, **kwargs):
         return self.yubikey_set_enabled(*args, enabled=True, **kwargs)
@@ -282,6 +325,20 @@ class ClientUI(REST_API):
     def yubikey_disable(self, *args, **kwargs):
         return self.yubikey_set_enabled(*args, enabled=False, **kwargs)
 
+    @require_session
+    @with_yubikey
+    def yubikey_generate(self, request, yubikey):
+        auth_form = ReauthenticateForm(request, yubikey.prefix)
+        if request.method == 'POST' and auth_form.validate():
+            if auth_form.authenticate():
+                client = request.environ['yubiauth.client']
+                code = client.generate_revocation(yubikey.prefix)
+                return self.render(request, 'revocation_code', yubikey=yubikey,
+                                   code=code)
+            else:
+                self.add_message('Invalid credentials!', 'error')
+        return self.render(request, 'reauthenticate', yubikey=yubikey,
+                           fieldsets=[auth_form], target=request.path_info[1:])
 
 application = session_api(ClientUI())
 

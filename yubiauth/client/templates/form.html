@@ -74,7 +74,7 @@
 	</fieldset>
 {%- endmacro -%}
 
-{%- macro render_form(fieldsets, action, alert=None) -%}
+{%- macro render_form(fieldsets, action, alert=None, submit='Submit') -%}
 	{% if alert %}
 	<div class="alert alert-{{ alert.type }}">
 		<button type="button" class="close" data-dismiss="alert">&times;</button>
@@ -88,11 +88,9 @@
 		{{ form_fieldset(fieldset) }}
 	{% endfor %}
 	<div class="form-actions">
-		<input type="submit" class="btn btn-primary" value="Save">
-		&nbsp;
-		<button type="reset" class="btn">Reset form</button>
+		<input type="submit" class="btn btn-primary" value="{{ submit }}">
 	</div>
 	</form>
 {%- endmacro -%}
 
-{{ render_form(fieldsets, target, alert) }}
+{{ render_form(fieldsets, target, alert, submit) }}

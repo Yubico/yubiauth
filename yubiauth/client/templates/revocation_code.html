@@ -1,0 +1,20 @@
+{% extends "logged_in.html" %}
+
+{% block title %}Revocation Code{% endblock %}
+
+{% block content %}
+{{ super() }}
+
+<h1>Revocation Code Generated!</h1>
+<p>Store the code in a safe place. If you lose your YubiKey, the code can be used to disable the key, even without access to your account. Any previously generated recovation code for this YubiKey has now been invalidated.</p>
+
+<div class="well">
+	<dl class="dl-horizontal">
+		<dt>Prefix</dt>
+		<dd><code>{{ yubikey.prefix }}</code></dd>
+		<dt>Revocation code</dt>
+		<dd><code>{{ code }}</code></dd>
+	</dl>
+</div>
+
+{% endblock %}

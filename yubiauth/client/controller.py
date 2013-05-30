@@ -134,7 +134,9 @@ class Client(Controller):
         keys = self.auth.query_yubikeys(**kwargs)
         if not len(keys) == 1:
             raise ValueError('Invalid revocation code!')
-        keys[0].enabled = False
+        yubikey = keys[0]
+        yubikey.enabled = False
+        del yubikey.attributes[REVOKE_KEY]
 
     def register(self, username, password, otp=None, attributes={}):
         if not settings['registration']:

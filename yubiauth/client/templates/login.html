@@ -6,15 +6,22 @@
 
 {% block content %}
 
-<h1>Login</h1>
+<h1>YubiAuth</h1>
 
-<form action="login" method="post" class="form-inline">
-	{{ login_form.username(placeholder='Username') }}
-	{{ form_field_errors(login_form.username) }}
-	{{ login_form.password(placeholder='Password') }}
-	{{ form_field_errors(login_form.password) }}
-	{{ login_form.yubikey(placeholder='YubiKey OTP') }}
-	<input type="submit" value="Login" class="btn btn-primary"/>
-</form>
+<div class="navbar">
+	<div class="navbar-inner">
+		<span class="brand">Login</span>
+		<form action="login" method="post" class="navbar-form pull-right">
+			{{ login_form.username(placeholder='Username') }}
+			{{ form_field_errors(login_form.username) }}
+			{{ login_form.password(placeholder='Password') }}
+			{{ form_field_errors(login_form.password) }}
+			{{ login_form.yubikey(placeholder='YubiKey OTP') }}
+			<input type="submit" value="Login" class="btn btn-primary"/>
+		</form>
+	</div>
+</div>
+
+<p>Lost your YubiKey? <a href="revoke">Revoke it</a>!</p>
 
 {% endblock %}

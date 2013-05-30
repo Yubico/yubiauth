@@ -5,7 +5,7 @@
 {% block content %}
 {{ super() }}
 
-<h1>YubiKey: {{ yubikey.prefix }}</h1>
+<h2>YubiKey: {{ yubikey.prefix }}</h2>
 
 <dl class="dl-horizontal">
 	<dt>Prefix</dt>
@@ -14,13 +14,15 @@
 	<dd>{{ yubikey.enabled }}</dd>
 </dl>
 
-<h2>Actions</h2>
+<h3>Actions</h3>
 {% if yubikey.enabled %}
 <a href="yubikey/{{ yubikey.prefix }}/disable" class="btn">Disable YubiKey</a>
 {% else %}
 <a href="yubikey/{{ yubikey.prefix }}/enable" class="btn">Enable YubiKey</a>
 {% endif %}
-
+<br />
+<a href="yubikey/{{ yubikey.prefix }}/unassign" class="btn">Unassign YubiKey</a>
+<br />
 <a href="yubikey/{{ yubikey.prefix }}/generate" class="btn">Generate revocation code</a>
 <p>A revocation code can be used to disable a YubiKey if you are unable to access your account. Once generated, be sure to save the revocation code in a safe place. Generating a new code will invalidate any previously generated code.</p>
 

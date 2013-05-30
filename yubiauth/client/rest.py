@@ -69,52 +69,44 @@ def ClientMiddleware(request, app):
 
 
 def session_api(app):
-    for name, method in app.__class__.__dict__.items():
-        if hasattr(method, 'requires_session'):
-            setattr(app, name, real_require_session(app, method))
-
     return ClientMiddleware(SessionMiddleware(app, settings['beaker']))
 
 
 def require_session(func=None, **kwargs):
     """
-    Used to decorate a method on a SessionAPI to ensure that the user has
+    Used to decorate a method on a REST_API to ensure that the user has
     a valid UserSession when entering the method. If not, an error will be
     returned.
 
     To customize the error, override the session_required method of the api,
     or pass an explicit error handler to the decorator.
+
+    This decorator expects a valid beaker.session and yubiauth.client in the
+    environ. In turn, it provides a User object as yubiauth.user.
     """
+
     error_handler = kwargs.get('error_handler', None)
 
     def inner(func):
-        def placeholder(self, *args, **kwargs):
-            raise Exception('require_session requires session_api!')
-        placeholder.requires_session = True
-        placeholder.orig = func
-        placeholder.error_handler = error_handler
-        return placeholder
-    #If func is not defined, the decorator was called with parentheses.
+        def new_func(self, request, *args, **kwargs):
+            try:
+                session = request.environ['beaker.session']
+                client = request.environ['yubiauth.client']
+                user_id = session.get('user_id', None)
+                request.environ['yubiauth.user'] = \
+                    client.auth.get_user(user_id)
+            except Exception, e:
+                log.warn(e)
+                if error_handler:
+                    return error_handler(request, e)
+                elif hasattr(self, 'session_required'):
+                    return self.session_required(request, e)
+                else:
+                    raise exc.HTTPBadRequest(detail='Session required!')
+            return func(self, request, *args, **kwargs)
+        return new_func
+    # If func is not defined, the decorator was called with parentheses.
     return inner(func) if func else inner
-
-
-def real_require_session(app, placeholder):
-    def inner(request, *args, **kwargs):
-        try:
-            session = request.environ['beaker.session']
-            client = request.environ['yubiauth.client']
-            user_id = session.get('user_id', None)
-            request.environ['yubiauth.user'] = client.auth.get_user(user_id)
-        except Exception, e:
-            log.warn(e)
-            if placeholder.error_handler:
-                return placeholder.error_handler(request, e)
-            elif hasattr(app, 'session_required'):
-                return app.session_required(request, e)
-            else:
-                raise exc.HTTPBadRequest(detail='Session required!')
-        return placeholder.orig(app, request, *args, **kwargs)
-    return inner
 
 
 class ClientAPI(REST_API):

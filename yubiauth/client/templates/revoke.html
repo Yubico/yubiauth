@@ -1,0 +1,18 @@
+{% extends "layout.html" %}
+
+{% from "form.html" import form_field, form_field_errors %}
+
+{% block title %}Revoke YubiKey{% endblock %}
+
+{% block content %}
+
+<h1>Revoke YubiKey</h1>
+<p>Enter your revocation code below. Once revoked, the YubiKey will become disabled and the code will be invalidated. Note that you will NOT be able to use the revoked YubiKey to access your account. If you have multiple YubiKeys connected to it, you may log in using one of the enabled ones. Once logged in, you will be able to re-enable the revoked YubiKey, should you wish to do so. If so, you will need to generate a new revocation code for the key</p>
+
+<form action="revoke" method="post" class="form-inline">
+	<label for="revoke"><strong>Revocation code</strong></label><br />
+	<input type="text" id="revoke" name="revoke" class="input-xlarge" />
+	<input type="submit" value="Revoke" class="btn btn-danger"/>
+</form>
+
+{% endblock %}

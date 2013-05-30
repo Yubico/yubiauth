@@ -2,6 +2,22 @@
 
 {% block content %}
 
-<p>User: {{ user.name }} <a href="logout">Log out</a></p>
+<h1>YubiAuth</h1>
+
+<div class="navbar">
+	<div class="navbar-inner">
+		<span class="brand">YubiAuth</span>
+
+		<ul class="nav">
+			<li><a href="status">Settings</a></li>
+		</ul>
+
+		<ul class="nav pull-right">
+			<li><p class="navbar-text">User: {{ user.name }}</p></li>
+			<li><a href="logout">Log out</a></li>
+		</ul>
+	</div>
+</div>
+
 
 {% endblock %}
