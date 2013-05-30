@@ -1,10 +1,10 @@
-* Version 0.2.6 (unreleased)
+* Version 0.3.0 (released 2013-05-30)
 
   * Added examples/ with FreeRADIUS example.
 
   * Use Beaker for session management.
 
-  * Added basic client UI for user registration.
+  * Added basic client UI for user registration and management.
 
 * Version 0.2.5 (released 2013-05-17)
 
