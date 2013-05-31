@@ -45,12 +45,16 @@ def test_header_authentication():
     session_id = app.cookies[SESSION_COOKIE]
     #Clear the cookie
     app.reset()
+    app.get('/status', status=400)
+
     headers = [(SESSION_HEADER, session_id)]
 
     username = app.get('/status', headers=headers).json['username']
     assert username == 'user1'
 
+    app.reset()
     app.get('/logout', headers=headers)
+    app.reset()
     app.get('/status', headers=headers, status=400)
 
 
