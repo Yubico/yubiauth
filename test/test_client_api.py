@@ -1,5 +1,5 @@
 from webtest import TestApp
-from yubiauth.client.rest import application
+from yubiauth.client.rest import application, SESSION_COOKIE, SESSION_HEADER
 from yubiauth.util.model import engine
 from yubiauth import create_tables, YubiAuth
 from utils import setting
@@ -30,11 +30,28 @@ def test_login_logout():
 
     # Uses the cookie set by the previous call
     username = app.get('/status').json['username']
-
     assert username == 'user1'
 
     app.get('/logout')
     app.get('/status', status=400)
+
+
+def test_header_authentication():
+    app.post(
+        '/login',
+        {'username': 'user1', 'password': 'pass1'}
+    )
+
+    session_id = app.cookies[SESSION_COOKIE]
+    #Clear the cookie
+    app.reset()
+    headers = [(SESSION_HEADER, session_id)]
+
+    username = app.get('/status', headers=headers).json['username']
+    assert username == 'user1'
+
+    app.get('/logout', headers=headers)
+    app.get('/status', headers=headers, status=400)
 
 
 def test_update_password():

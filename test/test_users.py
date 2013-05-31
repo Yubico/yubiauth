@@ -52,6 +52,17 @@ def test_validate_password():
     assert user2.validate_password('foo')
     assert not user2.validate_password('bar')
 
+@with_setup(setup, teardown)
+def test_get_user():
+    user = auth.get_user('user1')
+    id_as_int = int(user.id)
+    id_as_long = long(user.id)
+    user_int = auth.get_user(id_as_int)
+    user_long = auth.get_user(id_as_long)
+
+    assert user.name == user_int.name
+    assert user.name == user_long.name
+
 
 @with_setup(setup, teardown)
 def test_empty_password():

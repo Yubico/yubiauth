@@ -1,5 +1,7 @@
 * Version 0.3.2 (unreleased)
 
+  * Accept longs as well as ints in YubiAuth.get_user().
+
 * Version 0.3.1 (released 2013-05-30)
 
   * Bugfix release with include_package_data = True.
