@@ -30,6 +30,7 @@
 from yubiauth.util.controller import Controller
 from yubiauth.util.model import Session
 from yubiauth.core.model import User, YubiKey, AttributeAssociation
+from numbers import Integral
 
 __all__ = [
     'YubiAuth'
@@ -136,7 +137,7 @@ class YubiAuth(Controller):
         else:
             query = self.session.query(User)
             try:
-                if isinstance(user_username_or_id, int):
+                if isinstance(user_username_or_id, Integral):
                     user = query.get(user_username_or_id)
                     if user:
                         return user
