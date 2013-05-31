@@ -47,7 +47,7 @@ def test_header_authentication():
     app.reset()
     app.get('/status', status=400)
 
-    headers = [(SESSION_HEADER, session_id)]
+    headers = {SESSION_HEADER: session_id}
 
     username = app.get('/status', headers=headers).json['username']
     assert username == 'user1'

@@ -54,8 +54,8 @@ REVOKE_ATTRIBUTE = '_REVOKE'
 @wsgify.middleware
 def ClientMiddleware(request, app):
     # Allow the session ID to be provided as a header or cookie.
-    if not SESSION_COOKIE in request.cookies and \
-            SESSION_HEADER in request.headers:
+    # Header takes precedence over cookie.
+    if SESSION_HEADER in request.headers:
         request.cookies[SESSION_COOKIE] = request.headers[SESSION_HEADER]
     if 'yubiauth.client' in request.environ:
         return app
