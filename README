@@ -1,8 +1,6 @@
 YubiAuth
 ========
 
-*YubiAuth is a work in progress, and should not be concidered ready for use*
-
 YubiAuth provides a user management system which can be used as a base for 
 other systems. It allows the creation of users, which can be authenticated by
 username, password, and optionally a YubiKey OTP.
