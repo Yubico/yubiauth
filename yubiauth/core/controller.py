@@ -31,6 +31,7 @@ from yubiauth.util.controller import Controller
 from yubiauth.util.model import Session
 from yubiauth.core.model import User, YubiKey, AttributeAssociation
 from numbers import Integral
+import logging as log
 
 __all__ = [
     'YubiAuth'
@@ -87,10 +88,10 @@ class YubiAuth(Controller):
                 )
             )
 
-        return [
-            {'id': row[0], 'name': row[1]}
-            for row in query.all()
-        ]
+        result = query.all()
+
+        log.debug('User query: %r resulted in %d matches', kwargs, len(result))
+        return [{'id': row[0], 'name': row[1]} for row in result]
 
     def query_yubikeys(self, **kwargs):
         """
@@ -120,7 +121,10 @@ class YubiAuth(Controller):
                 )
             )
 
-        return query.all()
+        result = query.all()
+        log.debug('YubiKey query: %r resulted in %d matches', kwargs,
+                  len(result))
+        return result
 
     def get_user(self, user_username_or_id):
         """
@@ -140,12 +144,19 @@ class YubiAuth(Controller):
                 if isinstance(user_username_or_id, Integral):
                     user = query.get(user_username_or_id)
                     if user:
+                        log.debug('User lookup based on id: %d successful',
+                                  user_username_or_id)
                         return user
                 else:
-                    return query.filter(User.name == user_username_or_id).one()
+                    user = query.filter(User.name == user_username_or_id).one()
+                    log.debug('User lookup based on username: %s successful',
+                              user_username_or_id)
+                    return user
             except:
                 pass
 
+        log.debug('User lookup on: %r of type: %s failed', user_username_or_id,
+                  type(user_username_or_id))
         raise LookupError('User not found!')
 
     def get_yubikey(self, prefix):
@@ -155,8 +166,10 @@ class YubiAuth(Controller):
         @param prefix: A YubiKey prefix
         @type prefix: string
         """
-        return self.session.query(YubiKey).filter(
+        key = self.session.query(YubiKey).filter(
             YubiKey.prefix == prefix).one()
+        log.debug('YubiKey lookup on prefix: %s failed', prefix)
+        return key
 
     def create_user(self, username, password):
         """
@@ -176,5 +189,9 @@ class YubiAuth(Controller):
         except:
             user = User(username, password)
             self.session.add(user)
+            log.info('User created with ID: %d and username: %s', user.id,
+                     user.name)
             return user
+        log.error('Unable to create user with already existing username: %s',
+                  username)
         raise ValueError('A user with that username already exists!')

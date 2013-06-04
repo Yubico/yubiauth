@@ -35,6 +35,7 @@ from yubiauth.client.model import AttributeType, PERMS
 from beaker.session import Session as UserSession
 import uuid
 import base64
+import logging as log
 
 __all__ = [
     'Client',
@@ -86,16 +87,30 @@ class Client(Controller):
         raise ValueError("Unable to locate user!")
 
     def authenticate(self, username, password, otp=None):
-        if not username and otp:
-            user = self._user_for_otp(otp)
-        else:
-            user = self.auth.get_user(username)
+        try:
+            if not username and otp:
+                user = self._user_for_otp(otp)
+            else:
+                user = self.auth.get_user(username)
+        except Exception, e:
+            log.warn('Authentication failed. No such user.')
+            raise e
+
         if user.validate_password(password):
+            pw = 'valid password' if password else 'None (valid)'
             if authenticate_otp(user, otp):
+                log.info(
+                    'Authentication successful. '
+                    'Username %s, password: <%s>, OTP: %s',
+                    username, pw, otp)
                 return user
         else:
+            pw = 'invalid password' if password else 'None (invalid)'
             # Consume the OTP even if the password was incorrect.
             validate_otp(otp)
+        log.warn(
+            'Authentication failure. Username: %s, password: <%s>, OTP: %s',
+            username, pw, otp)
         raise ValueError("Invalid credentials!")
 
     def create_session(self, username, password, otp=None):
@@ -133,10 +148,15 @@ class Client(Controller):
         kwargs = {REVOKE_KEY: code}
         keys = self.auth.query_yubikeys(**kwargs)
         if not len(keys) == 1:
+            log.error('Revocation failed. Matching keys: %d, Code: %s',
+                      len(keys), code)
             raise ValueError('Invalid revocation code!')
         yubikey = keys[0]
         yubikey.enabled = False
         del yubikey.attributes[REVOKE_KEY]
+        log.info('Revocation successful. '
+                 'YubiKey with prefix: %s has been revoked using code: %s',
+                 yubikey.prefix, code)
 
     def register(self, username, password, otp=None, attributes={}):
         if not settings['registration']:
@@ -151,6 +171,7 @@ class Client(Controller):
         user.attributes.update(attributes)
         if otp:
             user.assign_yubikey(otp)
+        log.info('User registered with attributes: %r', attributes)
         return user
 
 

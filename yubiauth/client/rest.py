@@ -96,7 +96,7 @@ def require_session(func=None, **kwargs):
                 request.environ['yubiauth.user'] = \
                     client.auth.get_user(user_id)
             except Exception, e:
-                log.warn(e)
+                log.exception('Session required!')
                 if error_handler:
                     return error_handler(request, e)
                 elif hasattr(self, 'session_required'):
