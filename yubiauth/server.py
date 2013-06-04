@@ -31,6 +31,7 @@ import os
 from wsgiref.simple_server import make_server
 from webob import exc
 from webob.dec import wsgify
+import logging
 
 from yubiauth.core.rest import application as core_rest
 from yubiauth.client.rest import application as client_rest
@@ -72,5 +73,7 @@ class YubiAuthAPI(object):
 application = YubiAuthAPI()
 
 if __name__ == '__main__':
+    logging.basicConfig(level=logging.DEBUG)
+
     httpd = make_server('localhost', 8080, application)
     httpd.serve_forever()
