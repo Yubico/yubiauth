@@ -45,7 +45,8 @@ from yubiauth.client.rest import session_api, require_session
 from yubiauth.client.controller import requires_otp
 
 import os
-import logging as log
+import logging
+log = logging.getLogger('yubiauth.client.web')
 
 base_dir = os.path.dirname(__file__)
 template_dir = os.path.join(base_dir, 'templates')

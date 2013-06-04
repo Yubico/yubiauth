@@ -31,7 +31,8 @@ from yubiauth.util.controller import Controller
 from yubiauth.util.model import Session
 from yubiauth.core.model import User, YubiKey, AttributeAssociation
 from numbers import Integral
-import logging as log
+import logging
+log = logging.getLogger('yubiauth.core.controller')
 
 __all__ = [
     'YubiAuth'
@@ -189,8 +190,7 @@ class YubiAuth(Controller):
         except:
             user = User(username, password)
             self.session.add(user)
-            log.info('User created with ID: %d and username: %s', user.id,
-                     user.name)
+            log.info('User created with username: %s', user.name)
             return user
         log.error('Unable to create user with already existing username: %s',
                   username)

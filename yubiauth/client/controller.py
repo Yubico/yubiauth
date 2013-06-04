@@ -35,7 +35,8 @@ from yubiauth.client.model import AttributeType, PERMS
 from beaker.session import Session as UserSession
 import uuid
 import base64
-import logging as log
+import logging
+log = logging.getLogger('yubiauth.client.controller')
 
 __all__ = [
     'Client',
@@ -101,7 +102,7 @@ class Client(Controller):
             if authenticate_otp(user, otp):
                 log.info(
                     'Authentication successful. '
-                    'Username %s, password: <%s>, OTP: %s',
+                    'Username: %s, password: <%s>, OTP: %s',
                     username, pw, otp)
                 return user
         else:
