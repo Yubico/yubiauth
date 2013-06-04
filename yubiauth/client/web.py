@@ -46,7 +46,7 @@ from yubiauth.client.controller import requires_otp
 
 import os
 import logging
-log = logging.getLogger('yubiauth.client.web')
+log = logging.getLogger(__name__)
 
 base_dir = os.path.dirname(__file__)
 template_dir = os.path.join(base_dir, 'templates')

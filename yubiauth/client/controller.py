@@ -36,7 +36,7 @@ from beaker.session import Session as UserSession
 import uuid
 import base64
 import logging
-log = logging.getLogger('yubiauth.client.controller')
+log = logging.getLogger(__name__)
 
 __all__ = [
     'Client',
@@ -108,7 +108,8 @@ class Client(Controller):
         else:
             pw = 'invalid password' if password else 'None (invalid)'
             # Consume the OTP even if the password was incorrect.
-            validate_otp(otp)
+            if otp:
+                validate_otp(otp)
         log.warn(
             'Authentication failure. Username: %s, password: <%s>, OTP: %s',
             username, pw, otp)

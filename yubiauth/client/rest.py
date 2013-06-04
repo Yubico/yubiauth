@@ -45,7 +45,7 @@ from yubiauth.util.rest import (REST_API, Route, json_response, json_error,
 from yubiauth import settings
 
 import logging
-log = logging.getLogger('yubiauth.client.rest')
+log = logging.getLogger(__name__)
 
 SESSION_COOKIE = 'YubiAuth-Session'
 SESSION_HEADER = 'X-%s' % SESSION_COOKIE

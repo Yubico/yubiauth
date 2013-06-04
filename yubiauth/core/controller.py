@@ -32,7 +32,7 @@ from yubiauth.util.model import Session
 from yubiauth.core.model import User, YubiKey, AttributeAssociation
 from numbers import Integral
 import logging
-log = logging.getLogger('yubiauth.core.controller')
+log = logging.getLogger(__name__)
 
 __all__ = [
     'YubiAuth'
