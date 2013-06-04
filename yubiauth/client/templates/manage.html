@@ -1,6 +1,6 @@
 {% extends "logged_in.html" %}
 
-{% block title %}Status{% endblock %}
+{% block title %}Manage{% endblock %}
 
 {% block content %}
 {{ super() }}
@@ -24,6 +24,9 @@
 </form>
 
 <a href="change_password" class="btn">Change password</a>
-<a href="delete_account" class="btn">Delete account</a>
+
+{% if can_delete %}
+<a href="delete_account" class="btn btn-danger">Delete account</a>
+{% endif %}
 
 {% endblock %}

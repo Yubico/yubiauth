@@ -184,14 +184,12 @@ class ClientAPI(REST_API):
             return json_error('Invalid credentials!')
 
     @require_session
-    @extract_params('yubikey', 'password', 'otp?')
-    def generate_revocation(self, request, yubikey, password, otp=None):
+    @extract_params('password', 'otp')
+    def generate_revocation(self, request, password, otp):
         client = request.environ['yubiauth.client']
         user = request.environ['yubiauth.user']
         try:
             client.authenticate(user.name, password, otp)
-            if not user.validate_otp(otp):
-                return json_error('Invalid credentials!')
             code = client.generate_revocation(otp[:-32])
             return json_response(code)
         except:
@@ -205,6 +203,20 @@ class ClientAPI(REST_API):
             return json_response(True)
         except:
             return json_error('Invalid code!')
+
+    @require_session
+    @extract_params('password', 'otp?')
+    def delete_account(self, request, password, otp=None):
+        if not settings['deletion']:
+            return json_error('Account deletion disabled!')
+        client = request.environ['yubiauth.client']
+        user = request.environ['yubiauth.user']
+        try:
+            client.authenticate(user.name, password, otp)
+            user.delete()
+            return json_response(True)
+        except:
+            return json_error('Invalid credentials!')
 
 
 application = session_api(ClientAPI())

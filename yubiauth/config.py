@@ -57,6 +57,7 @@ VALUES = {
     'AUTO_PROVISION': 'auto_provision',
     'YUBIKEY_IDENTIFICATION': 'yubikey_id',
     'ENABLE_USER_REGISTRATION': 'registration',
+    'ALLOW_USER_DELETE': 'deletion',
     'BEAKER': 'beaker'
 }
 

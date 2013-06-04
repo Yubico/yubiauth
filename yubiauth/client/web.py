@@ -143,7 +143,7 @@ class ClientUI(REST_API):
         Route(r'^/login$', post='login'),
         Route(r'^/register$', post='register'),
         Route(r'^/logout$', 'logout'),
-        Route(r'^/status$', 'status'),
+        Route(r'^/manage$', 'manage'),
         Route(r'^/assign_yubikey$', post='assign_yubikey'),
         Route(r'^/change_password$', 'change_password'),
         Route(r'^/delete_account$', 'delete_account'),
@@ -218,15 +218,16 @@ class ClientUI(REST_API):
                 session = client.create_session(username, password, yubikey)
                 request.environ['beaker.session'].update(session)
                 session.delete()
-                return redirect(request, 'status')
+                return redirect(request, 'manage')
             except Exception:
                 self.add_message('Login failed!', 'error')
                 request.environ['beaker.session'].delete()
         return self.index(request, login_form=login_form)
 
     @require_session
-    def status(self, request):
-        return self.render(request, 'status')
+    def manage(self, request):
+        can_delete = settings['deletion']
+        return self.render(request, 'manage', can_delete=can_delete)
 
     @require_session
     @extract_params('noauth?')
@@ -243,7 +244,7 @@ class ClientUI(REST_API):
                 self.add_message('Invalid OTP for new YubiKey!', 'error')
             if not prefix in user.yubikeys:
                 user.assign_yubikey(prefix)
-            return redirect(request, 'status')
+            return redirect(request, 'manage')
         else:
             self.add_message('Invalid credentials!', 'error')
 
@@ -258,7 +259,7 @@ class ClientUI(REST_API):
             if auth_form.authenticate():
                 user = request.environ['yubiauth.user']
                 del user.yubikeys[yubikey.prefix]
-                return redirect(request, 'status')
+                return redirect(request, 'manage')
             else:
                 self.add_message('Invalid credentials!', 'error')
 
@@ -275,7 +276,7 @@ class ClientUI(REST_API):
                 new_password = password_form.new_password.data
                 user = request.environ['yubiauth.user']
                 user.set_password(new_password)
-                return redirect(request, 'status')
+                return redirect(request, 'manage')
             else:
                 self.add_message('Invalid credentials!', 'error')
 
@@ -284,6 +285,8 @@ class ClientUI(REST_API):
 
     @require_session
     def delete_account(self, request):
+        if not settings['deletion']:
+            raise exc.HTTPForbidden(details='Account deletion disabled!')
         auth_form = ReauthenticateForm(request)
         if request.method == 'POST' and auth_form.validate():
             if auth_form.authenticate():

@@ -81,6 +81,10 @@ YUBIKEY_IDENTIFICATION = False
 # When set to True, allow users to register accounts via the client API.
 ENABLE_USER_REGISTRATION = False
 
+# When set to True, allow users to delete their own accounts via the client
+# API.
+ALLOW_USER_DELETE = False
+
 # Beaker configuration, which is used for session management.
 BEAKER = {
     'session.lock_dir': '/tmp/cache/lock',
