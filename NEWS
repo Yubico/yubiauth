@@ -1,6 +1,8 @@
-* Version 0.3.2 (unreleased)
+* Version 0.3.2 (released 2013-06-04)
 
   * Accept longs as well as ints in YubiAuth.get_user().
+
+  * Improved logging.
 
 * Version 0.3.1 (released 2013-05-30)
 
