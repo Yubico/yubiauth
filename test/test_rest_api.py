@@ -203,26 +203,32 @@ def test_find_user_by_yubikey():
 
 
 def test_assign_attributes():
+    val1 = 'val1'
+    val2 = 'value 2'
+    val3 = 'val3' * 1024
     app.post('/users/1/attributes', {
-             'key': 'attr1', 'value': 'val1'})
+             'key': 'attr1', 'value': val1})
     app.post('/users/1/attributes', {
-             'key': 'attr2', 'value': 'val2'})
+             'key': 'attr2', 'value': val2})
+    app.post('/users/1/attributes', {
+             'key': 'attr3', 'value': val3})
 
     attributes = app.get('/users/1/attributes').json
-    assert attributes['attr1'] == 'val1'
-    assert attributes['attr2'] == 'val2'
-    assert len(attributes) == 2
+    assert attributes['attr1'] == val1
+    assert attributes['attr2'] == val2
+    assert attributes['attr3'] == val3
+    assert len(attributes) == 3
 
     user = app.get('/users/1').json
     assert user['attributes'] == attributes
 
 
 def test_find_user_by_attribute():
-    user1 = app.get('/user?attr1=val1&attr2=val2').json
+    user1 = app.get('/user?attr1=val1&attr2=value 2').json
     assert user1['id'] == 1
 
     user2 = app.post('/user', {
-                     'attr1': 'val1', 'attr2': 'val2'}).json
+                     'attr1': 'val1', 'attr2': 'value 2'}).json
     assert user1 == user2
 
 
@@ -242,16 +248,16 @@ def test_overwrite_attributes():
     attributes = app.get('/users/1/attributes').json
 
     assert attributes['attr1'] == 'newval'
-    assert attributes['attr2'] == 'val2'
-    assert len(attributes) == 2
+    assert attributes['attr2'] == 'value 2'
+    assert len(attributes) == 3
 
 
 def test_unset_attributes():
     app.delete('/users/1/attributes/attr1')
     attributes = app.get('/users/1/attributes').json
 
-    assert attributes['attr2'] == 'val2'
-    assert len(attributes) == 1
+    assert attributes['attr2'] == 'value 2'
+    assert len(attributes) == 2
 
     value = app.get('/users/1/attributes/attr1').json
     assert not value

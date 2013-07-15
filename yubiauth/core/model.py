@@ -39,8 +39,8 @@ from yubiauth.config import settings
 from yubiauth.util import validate_otp
 from yubiauth.util.model import Session, Deletable
 
-from sqlalchemy import (Sequence, Column, Boolean, Integer, String, ForeignKey,
-                        UniqueConstraint, Table)
+from sqlalchemy import (Sequence, Column, Boolean, Integer, String, Text,
+                        ForeignKey, UniqueConstraint, Table)
 from sqlalchemy.ext.declarative import declarative_base, declared_attr
 from sqlalchemy.orm import relationship, backref
 from sqlalchemy.orm.collections import attribute_mapped_collection
@@ -120,7 +120,7 @@ class Attribute(Base):
     _association_id = Column('association_id', Integer, ForeignKey(
         'attribute_associations.id'))
     key = Column(String(32), nullable=False)
-    value = Column(String(128), nullable=False)
+    value = Column(Text(), nullable=False)
     owner = association_proxy('association', 'owner')
 
     def __init__(self, key, value):
