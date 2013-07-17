@@ -1,6 +1,8 @@
-* Version 0.3.4 (unreleased)
+* Version 0.3.4 (released 2013-07-17)
 
   * Unbounded attribute values.
+
+  * Added HTTP Basic Auth example.
 
 * Version 0.3.3 (released 2013-06-04)
 
