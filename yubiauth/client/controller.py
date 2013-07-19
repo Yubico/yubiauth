@@ -94,7 +94,7 @@ class Client(Controller):
             else:
                 user = self.auth.get_user(username)
         except Exception, e:
-            log.warn('Authentication failed. No such user.')
+            log.info('Authentication failed. No such user: %s', username)
             raise e
 
         if user.validate_password(password):
@@ -110,8 +110,8 @@ class Client(Controller):
             # Consume the OTP even if the password was incorrect.
             if otp:
                 validate_otp(otp)
-        log.warn(
-            'Authentication failure. Username: %s, password: <%s>, OTP: %s',
+        log.info(
+            'Authentication failed. Username: %s, password: <%s>, OTP: %s',
             username, pw, otp)
         raise ValueError("Invalid credentials!")
 
@@ -157,7 +157,7 @@ class Client(Controller):
         yubikey.enabled = False
         del yubikey.attributes[REVOKE_KEY]
         log.info('Revocation successful. '
-                 'YubiKey with prefix: %s has been revoked using code: %s',
+                 'YubiKey [%s] has been revoked using code: %s',
                  yubikey.prefix, code)
 
     def register(self, username, password, otp=None, attributes={}):
@@ -173,7 +173,8 @@ class Client(Controller):
         user.attributes.update(attributes)
         if otp:
             user.assign_yubikey(otp)
-        log.info('User registered with attributes: %r', attributes)
+        log.info('User %s registered with attributes: %r', username,
+                 attributes)
         return user
 
 
