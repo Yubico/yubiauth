@@ -4,5 +4,6 @@ include release.py
 include ChangeLog
 include doc/*.md
 include examples/*
+include conf/*
 recursive-include yubiauth/static *
 recursive-include yubiauth/client/templates *
