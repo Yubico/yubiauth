@@ -204,9 +204,11 @@ class ClientUI(REST_API):
                 user = client.register(username, password, otp)
                 return self.render(request, 'created', user=user,
                                    login_form=LoginForm())
-            except Exception, e:
+            except:
                 self.add_message('Account registration failed!', 'error')
-                log.warn(e)
+                log.info('Account registration failed for username=%s',
+                         username)
+                log.debug('Registration failure:', exc_info=True)
         return self.index(request, register_form=register_form)
 
     @extract_params('username?', 'password?', 'yubikey?')

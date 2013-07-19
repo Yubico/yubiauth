@@ -145,12 +145,12 @@ class YubiAuth(Controller):
                 if isinstance(user_username_or_id, Integral):
                     user = query.get(user_username_or_id)
                     if user:
-                        log.debug('User lookup based on id: %d successful',
+                        log.debug('User lookup id=%d successful',
                                   user_username_or_id)
                         return user
                 else:
                     user = query.filter(User.name == user_username_or_id).one()
-                    log.debug('User lookup based on username: %s successful',
+                    log.debug('User lookup username=%s successful',
                               user_username_or_id)
                     return user
             except:
@@ -169,7 +169,7 @@ class YubiAuth(Controller):
         """
         key = self.session.query(YubiKey).filter(
             YubiKey.prefix == prefix).one()
-        log.debug('YubiKey lookup on prefix: %s failed', prefix)
+        log.debug('YubiKey lookup prefix=%s failed', prefix)
         return key
 
     def create_user(self, username, password):
@@ -190,8 +190,8 @@ class YubiAuth(Controller):
         except:
             user = User(username, password)
             self.session.add(user)
-            log.info('User created with username: %s', user.name)
+            log.info('User created: %s', user.name)
             return user
-        log.error('Unable to create user with already existing username: %s',
+        log.error('Create user failed! Username exists: %s',
                   username)
         raise ValueError('A user with that username already exists!')

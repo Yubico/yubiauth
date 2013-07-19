@@ -97,7 +97,8 @@ def require_session(func=None, **kwargs):
                 request.environ['yubiauth.user'] = \
                     client.auth.get_user(user_id)
             except Exception, e:
-                log.exception('Session required!')
+                log.warn('Action not permitted without a session: %s',
+                         request.url)
                 if error_handler:
                     return error_handler(request, e)
                 elif hasattr(self, 'session_required'):
@@ -142,8 +143,9 @@ class ClientAPI(REST_API):
             request.environ['beaker.session'].update(session)
             session.delete()
             return json_response(True)
-        except Exception, e:
-            log.warn(e)
+        except:
+            log.info('Login failed for username=%s', username)
+            log.debug('Login failure:', exc_info=True)
             return json_error('Invalid credentials!')
 
     @require_session

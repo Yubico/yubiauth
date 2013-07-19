@@ -36,13 +36,17 @@ import imp
 import errno
 import os
 import default_settings
+import logging
+import logging.config
 
 
 SETTINGS_FILE = os.getenv('YUBIAUTH_SETTINGS',
                           '/etc/yubico/auth/yubiauth.conf')
+LOG_CONFIG_FILE = os.path.join(os.path.dirname(os.path.abspath(SETTINGS_FILE)),
+                               'logging.conf')
 
 VALUES = {
-    #Core
+    # Core
     'DATABASE_CONFIGURATION': 'db',
     'YKVAL_SERVERS': 'ykval',
     'YKVAL_CLIENT_ID': 'ykval_id',
@@ -51,7 +55,7 @@ VALUES = {
     'USE_HSM': 'use_hsm',
     'YHSM_DEVICE': 'yhsm_device',
     'CRYPT_CONTEXT': 'crypt_context',
-    #Client
+    # Client
     'CORE_URL': 'core_url',
     'SECURITY_LEVEL': 'security_level',
     'AUTO_PROVISION': 'auto_provision',
@@ -88,5 +92,13 @@ if not 'session.url' in settings['beaker']:
     settings['beaker']['session.url'] = settings['db']
 
 if not 'YHSM_DEVICE' in os.environ and 'yhsm_device' in settings:
-    #The environment variable is the one that is actually used.
+    # The environment variable is the one that is actually used.
     os.environ['YHSM_DEVICE'] = settings['yhsm_device']
+
+# Set up logging
+try:
+    logging.config.fileConfig(LOG_CONFIG_FILE)
+except:
+    logging.basicConfig(level=logging.INFO)
+    log = logging.getLogger(__name__)
+    log.exception("Unable to configure logging. Logging to console.")

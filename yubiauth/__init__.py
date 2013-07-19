@@ -39,14 +39,11 @@ from yubiauth.core.controller import YubiAuth
 from yubiauth.util.model import engine
 from yubiauth.core.model import Base as core_base
 from yubiauth.client.model import Base as client_base
-import logging
 
-# Use the defaults
-logging.basicConfig()
 
 def create_tables(engine=engine):
     core_base.metadata.create_all(engine)
     client_base.metadata.create_all(engine)
 
-#TODO: Remove
+#TODO: Remove?
 create_tables()
