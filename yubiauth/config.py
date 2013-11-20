@@ -35,7 +35,7 @@ import sys
 import imp
 import errno
 import os
-import default_settings
+from yubiauth import default_settings
 import logging
 import logging.config
 
@@ -62,7 +62,12 @@ VALUES = {
     'YUBIKEY_IDENTIFICATION': 'yubikey_id',
     'ENABLE_USER_REGISTRATION': 'registration',
     'ALLOW_USER_DELETE': 'deletion',
-    'BEAKER': 'beaker'
+    'BEAKER': 'beaker',
+    # LDAP
+    'USE_LDAP': 'use_ldap',
+    'LDAP_SERVER': 'ldap_server',
+    'LDAP_BIND_DN': 'ldap_bind_dn',
+    'LDAP_AUTO_IMPORT': 'ldap_auto_import'
 }
 
 

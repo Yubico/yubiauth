@@ -27,6 +27,25 @@ YKVAL_CLIENT_SECRET = '5Vm3Zp2mUTQHMo1DeG9tdojpc1Y='
 # this, leave it to False.
 ALLOW_EMPTY_PASSWORDS = False
 
+# LDAP server configuration
+# YubiAuth can optionally use an LDAP server such as OpenLDAP or Active
+# Directory to validate users instead of the built-in user database.
+USE_LDAP = False
+
+# LDAP server URI to bind to.
+LDAP_SERVER = "ldap://127.0.0.1"
+
+# Template for the bind DN to use for a user. The User object will be passed to
+# the templates .format() method, and it's attributes can thus be used within
+# the DN. For example: {user.name} or {user[some_attr]} can be used.
+# NOTE: If a user has an attribute named _ldap_bind_dn, this will override the
+# below setting for that user only.
+LDAP_BIND_DN = "uid={user.name},ou=People,dc=example,dc=com"
+
+# When True, users will be automatically created in YubiAuth when a user that
+# exists in the LDAP database tried to authenticate using correct credentials.
+LDAP_AUTO_IMPORT = True
+
 # Use a YubiHSM for increased security
 # This requires the pyhsm package, and should be used with the yhsm-daemon
 # utility that comes with it.

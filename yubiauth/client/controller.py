@@ -33,6 +33,7 @@ from yubiauth.util.controller import Controller
 from yubiauth.util.model import Session
 from yubiauth.client.model import AttributeType, PERMS
 from beaker.session import Session as UserSession
+from functools import partial
 import uuid
 import base64
 import logging
@@ -73,12 +74,18 @@ session_config['use_cookies'] = False
 
 
 class Client(Controller):
+
     """
     Main class for accessing user data.
     """
     def __init__(self, session=Session()):
         super(Client, self).__init__(session)
         self.auth = YubiAuth(session)
+
+        if settings['use_ldap']:
+            from yubiauth.client.ldapauth import LDAPAuthenticator
+            self.ldapauth = LDAPAuthenticator(settings['ldap_server'],
+                                              settings['ldap_bind_dn'])
 
     def _user_for_otp(self, otp):
         if settings['yubikey_id']:
@@ -93,9 +100,17 @@ class Client(Controller):
                 user = self._user_for_otp(otp)
             else:
                 user = self.auth.get_user(username)
-        except Exception, e:
-            log.info('Authentication failed. No such user: %s', username)
-            raise e
+        except Exception as e:
+            if settings['use_ldap'] and settings['ldap_auto_import'] \
+                    and self.ldapauth.authenticate(username, password):
+                user = self.auth.create_user(username, password)
+                user.attributes['_ldap_auto_imported'] = True
+            else:
+                log.info('Authentication failed. No such user: %s', username)
+                raise e
+
+        if settings['use_ldap']:
+            user.validate_password = partial(self.ldapauth.authenticate, user)
 
         if user.validate_password(password):
             pw = 'valid password' if password else 'None (valid)'
