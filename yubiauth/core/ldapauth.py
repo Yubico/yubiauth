@@ -64,6 +64,7 @@ class LDAPAuthenticator(object):
 
         try:
             conn = ldap.initialize(self.ldap_server)
+            conn.set_option(ldap.OPT_NETWORK_TIMEOUT, 10.0)
             conn.simple_bind_s(bind_dn, password)
             log.info("LDAP authentication successful. "
                      "Bind DN: %s, server: %s", bind_dn, self.ldap_server)
