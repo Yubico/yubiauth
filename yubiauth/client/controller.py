@@ -47,6 +47,12 @@ __all__ = [
 REVOKE_KEY = '_revoke'
 
 
+if settings['use_ldap'] and settings['ldap_auto_import']:
+    from yubiauth.core.ldapauth import LDAPAuthenticator
+    global ldapauth
+    ldapauth = LDAPAuthenticator(settings['ldap_server'],
+                                 settings['ldap_bind_dn'])
+
 def requires_otp(user):
     sl = settings['security_level']
     count = len([key for key in user.yubikeys.values() if key.enabled])
@@ -82,11 +88,6 @@ class Client(Controller):
         super(Client, self).__init__(session)
         self.auth = YubiAuth(session)
 
-        if settings['use_ldap']:
-            from yubiauth.client.ldapauth import LDAPAuthenticator
-            self.ldapauth = LDAPAuthenticator(settings['ldap_server'],
-                                              settings['ldap_bind_dn'])
-
     def _user_for_otp(self, otp):
         if settings['yubikey_id']:
             yubikey = self.auth.get_yubikey(otp[:-32])
@@ -102,15 +103,12 @@ class Client(Controller):
                 user = self.auth.get_user(username)
         except Exception as e:
             if settings['use_ldap'] and settings['ldap_auto_import'] \
-                    and self.ldapauth.authenticate(username, password):
-                user = self.auth.create_user(username, password)
+                    and ldapauth.authenticate(username, password):
+                user = self.auth.create_user(username, None)
                 user.attributes['_ldap_auto_imported'] = True
             else:
                 log.info('Authentication failed. No such user: %s', username)
                 raise e
-
-        if settings['use_ldap']:
-            user.validate_password = partial(self.ldapauth.authenticate, user)
 
         if user.validate_password(password):
             pw = 'valid password' if password else 'None (valid)'

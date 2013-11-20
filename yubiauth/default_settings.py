@@ -37,10 +37,10 @@ LDAP_SERVER = "ldap://127.0.0.1"
 
 # Template for the bind DN to use for a user. The User object will be passed to
 # the templates .format() method, and it's attributes can thus be used within
-# the DN. For example: {user.name} or {user[some_attr]} can be used.
+# the DN. For example: {user.name} can be used.
 # NOTE: If a user has an attribute named _ldap_bind_dn, this will override the
 # below setting for that user only.
-LDAP_BIND_DN = "uid={user.name},ou=People,dc=example,dc=com"
+LDAP_BIND_DN = "uid={user.name},ou=People,dc=lan"
 
 # When True, users will be automatically created in YubiAuth when a user that
 # exists in the LDAP database tried to authenticate using correct credentials.
