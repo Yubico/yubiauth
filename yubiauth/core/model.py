@@ -283,6 +283,9 @@ class User(AttributeHolder, Deletable, Base):
         @param password: The new password to set for the user.
         @type password: string
         """
+        if settings['use_ldap']:
+            raise ValueError("Cannot set password when using LDAP")
+
         if password:
             self.auth = pwd_context.encrypt(password)
         else:

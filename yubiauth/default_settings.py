@@ -30,6 +30,8 @@ ALLOW_EMPTY_PASSWORDS = False
 # LDAP server configuration
 # YubiAuth can optionally use an LDAP server such as OpenLDAP or Active
 # Directory to validate users instead of the built-in user database.
+# NOTE: When USE_LDAP is set to True, password validation will go through LDAP
+# and changing the password of a user will not work.
 USE_LDAP = False
 
 # LDAP server URI to bind to.
