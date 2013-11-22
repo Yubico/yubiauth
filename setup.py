@@ -56,7 +56,7 @@ setup(
     data_files=[('/etc/yubico/auth', ['conf/logging.conf'])],
     setup_requires=['nose>=1.0'],
     install_requires=['SQLAlchemy', 'WebOb', 'passlib', 'yubico-client',
-                      'Beaker', 'Jinja2', 'WTForms'],
+                      'Beaker', 'Jinja2', 'WTForms', 'python-ldap'],
     test_suite="nose.collector",
     tests_require=tests_require,
     cmdclass={'release': release},
