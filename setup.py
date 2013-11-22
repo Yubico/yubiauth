@@ -42,7 +42,7 @@ os.environ['YUBIAUTH_SETTINGS'] = '/dev/null'
 if 'hsm' in sys.argv:
     tests_require.append('pyhsm')
 
-python_ldap = 'python-ldap' if sys.verison_info[0] < 3 else 'python3-ldap'
+python_ldap = 'python-ldap' if sys.version_info[0] < 3 else 'python3-ldap'
 
 setup(
     name='yubiauth',
@@ -58,7 +58,7 @@ setup(
     data_files=[('/etc/yubico/auth', ['conf/logging.conf'])],
     setup_requires=['nose>=1.0'],
     install_requires=['SQLAlchemy', 'WebOb', 'passlib', 'yubico-client',
-                      'Beaker', 'Jinja2', 'WTForms', pyhton_ldap],
+                      'Beaker', 'Jinja2', 'WTForms', python_ldap],
     test_suite="nose.collector",
     tests_require=tests_require,
     cmdclass={'release': release},
