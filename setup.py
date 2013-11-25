@@ -46,7 +46,7 @@ python_ldap = 'python-ldap' if sys.version_info[0] < 3 else 'python3-ldap'
 
 setup(
     name='yubiauth',
-    version='0.3.6',
+    version='0.3.7',
     author='Dain Nilsson',
     author_email='dain@yubico.com',
     maintainer='Yubico Open Source Maintainers',
