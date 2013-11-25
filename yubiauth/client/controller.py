@@ -33,7 +33,6 @@ from yubiauth.util.controller import Controller
 from yubiauth.util.model import Session
 from yubiauth.client.model import AttributeType, PERMS
 from beaker.session import Session as UserSession
-from functools import partial
 import uuid
 import base64
 import logging
@@ -52,6 +51,7 @@ if settings['use_ldap'] and settings['ldap_auto_import']:
     global ldapauth
     ldapauth = LDAPAuthenticator(settings['ldap_server'],
                                  settings['ldap_bind_dn'])
+
 
 def requires_otp(user):
     sl = settings['security_level']
@@ -106,6 +106,7 @@ class Client(Controller):
                     and ldapauth.authenticate(username, password):
                 user = self.auth.create_user(username, None)
                 user.attributes['_ldap_auto_imported'] = True
+                log.info('Auto-created LDAP user: %s', username)
             else:
                 log.info('Authentication failed. No such user: %s', username)
                 raise e
@@ -173,9 +174,12 @@ class Client(Controller):
                  'YubiKey [%s] has been revoked using code: %s',
                  yubikey.prefix, code)
 
-    def register(self, username, password, otp=None, attributes={}):
+    def register(self, username, password, otp=None, attributes=None):
         if not settings['registration']:
             raise ValueError('User registration disabled!')
+
+        if attributes is None:
+            attributes = {}
 
         validate_attributes(self.get_attributes(), attributes)
 
