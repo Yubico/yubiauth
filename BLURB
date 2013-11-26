@@ -1,0 +1,7 @@
+Author: Yubico
+Basename: yubiauth
+Homepage: http://opensource.yubico.com/yubiauth/
+License: BSD-2-Clause
+Name: yubiauth
+Project: yubiauth
+Summary: Authentication backend written in Python
