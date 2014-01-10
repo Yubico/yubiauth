@@ -1,0 +1,8 @@
+#
+#	YubiKey specific dictionary attributes. This file needs
+#	to be included in /etc/freeradius/dictionary like so:
+#
+#	$INCLUDE	/path/to/dictionary.rlm_yubiauth
+#
+
+ATTRIBUTE       Yubikey-OTP       3000    string

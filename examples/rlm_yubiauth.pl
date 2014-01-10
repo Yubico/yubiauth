@@ -32,6 +32,9 @@
 # To use, configure the rlm_perl module in FreeRadius to use this script, and
 # add the Perl module to the authorize and authenticate sections of your site
 # configuration.
+#
+# You will also need to add the accompanying dictionary file to be included in
+# /etc/freeradius/dictionary
 # 
 # YubiKey OTPs are expected to be appended to either the username or password.
 #
