@@ -304,7 +304,7 @@ class User(AttributeHolder, Deletable, Base):
         if settings['use_ldap']:
             return ldapauth.authenticate(self.name, password)
 
-        if not password:
+        if not self.auth and not password:
             return settings['allow_empty'] is True
 
         valid, new_auth = pwd_context.\
