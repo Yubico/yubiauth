@@ -134,6 +134,14 @@ def test_authentication_without_username(mock):
 def test_single_factor_login(mock):
     otp = 'c' * 44
     with setting(yubikey_id=True, allow_empty=True):
+        app.post(
+            '/login',
+            {'username': 'user1', 'password': 'pass1', 'otp': otp}
+        )
+
+        app.post('/password', {
+            'otp': otp, 'oldpass': 'pass1', 'newpass': ''})
+
         assert app.post('/authenticate', {'otp': otp}).json
         app.post('/login', {'otp': otp})
         status = app.get('/status').json
