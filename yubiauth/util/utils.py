@@ -33,20 +33,28 @@ __all__ = [
 ]
 
 from yubiauth.config import settings
-from yubico_client import Yubico
+from yubico_client import Yubico, __version__ as version
 from yubico_client import yubico as yubico_constants
 
 
-# TODO: Pass these URLs to Yubico instead.
-use_https = all(url.startswith('https://') for url in settings['ykval'])
-yubico_constants.API_URLS = [url[8:] if url.startswith('https://') else
-                             url[7:] if url.startswith('http://') else
-                             url for url in settings['ykval']]
-yubico = Yubico(settings['ykval_id'], settings['ykval_secret'],
-                use_https=use_https)
+kwargs = {}
+api_urls = [url[8:] if url.startswith('https://') else
+            url[7:] if url.startswith('http://') else
+            url for url in settings['ykval']]
 
+if version < (1, 8, 0):  # 1.8.0 introduces URL passing.
+    yubico_constants.API_URLS = api_urls
+else:
+    kwargs['api_urls'] = api_urls
+
+if version < (1, 9, 0):  # 1.9.0 removes use_https parameter.
+    kwargs['use_https'] = all(url.startswith('https://') for url in settings['ykval'])
+
+
+yubico = Yubico(settings['ykval_id'], settings['ykval_secret'], **kwargs)
 
 MODHEX = 'cbdefghijklnrtuv'
+
 
 def validate_otp(otp):
     try:
