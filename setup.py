@@ -31,6 +31,7 @@
 from setuptools import setup
 import sys
 import os
+import re
 from release import release
 
 tests_require = ['WebTest', 'mock']
@@ -44,9 +45,20 @@ if 'hsm' in sys.argv:
 
 python_ldap = 'python-ldap' if sys.version_info[0] < 3 else 'python3-ldap'
 
+VERSION_PATTERN = re.compile(r"(?m)^__version__\s*=\s*['\"](.+)['\"]$")
+
+
+def get_version():
+    """Return the current version as defined by neoman/__init__.py."""
+
+    with open('yubiauth/__init__.py', 'r') as f:
+        match = VERSION_PATTERN.search(f.read())
+        return match.group(1)
+
+
 setup(
     name='yubiauth',
-    version='0.3.7',
+    version=get_version(),
     author='Dain Nilsson',
     author_email='dain@yubico.com',
     maintainer='Yubico Open Source Maintainers',
