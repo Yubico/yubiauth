@@ -1,3 +1,11 @@
+* Version 0.3.8 (released 2014-02-21)
+
+  * Fixed compatibility with newer versions of yubico-client.
+
+  * Added dictionary for rlm_yubiauth.
+
+  * Fixed an issue with "allow_empty_passwords" not working correctly.
+
 * Version 0.3.7 (released 2013-11-25)
 
   * Fixed bug with LDAP user auto-creation.
