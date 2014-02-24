@@ -291,6 +291,30 @@ class User(AttributeHolder, Deletable, Base):
         else:
             self.auth = None
 
+    def validate_all(self, password, otp):
+        """
+        Validated an OTP and a password.
+        This method is needed if ldap_yubikey_attr is set to something true
+        because password is needed to query ldap and this cannot be performed
+        with former functions self.validate_password and self.validate_otp.
+
+        @param password: A password to validate for the user.
+        @type password: string
+
+        @param otp: The OTP to validate.
+        @type otp: string
+
+        @return: A tuple of 2 booleans, respectively for password and OTP (True
+        if it was valid, False if not)
+        @rtype (bool, bool)
+
+        """
+        if settings['use_ldap'] and settings['ldap_yubikey_attr']:
+            return ldapauth.validate_all(self.name, password, otp)
+        else:
+            return (self.validate_password(password),
+                    self.validate_otp(otp))
+
     def validate_password(self, password):
         """
         Validates a password.
@@ -315,7 +339,7 @@ class User(AttributeHolder, Deletable, Base):
             return True
         return False
 
-    def validate_otp(self, otp):
+    def validate_otp(self, otp, password=None):
         """
         Validates a YubiKey OTP (One Time Password) for the user.
 
