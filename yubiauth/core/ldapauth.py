@@ -53,7 +53,7 @@ class LDAPAuthenticator(object):
         self.ldap_server = ldap_server
         self.bind_dn = bind_dn
 
-    def _bind(user, password):
+    def _bind(self, user, password):
         """
         Binds the ldap and returns a connection object
 
@@ -87,7 +87,7 @@ class LDAPAuthenticator(object):
         else:
             return False
 
-    def validate_yubikey(self, user, password, prefix):
+    def validate_yubikey(self, user, password, prefix, yk_attr):
         """
         Performs a simple bind and check the OTP against LDAP
         using settigns['ldap_yubikey_attr']
@@ -98,9 +98,8 @@ class LDAPAuthenticator(object):
             return False
 
         try:
-            (dn, entry) = conn.search_s(dn, ldap.SCOPE_ONELEVEL)
+            dn, entry = conn.search_s(dn, ldap.SCOPE_ONELEVEL)[0]
             conn.unbind_s()
-            yk_attr = settings['ldap_yubikey_attr']
             if not entry.has_key(yk_attr) or prefix not in entry[yk_attr]:
                 return False
             return True

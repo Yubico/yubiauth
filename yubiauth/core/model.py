@@ -329,7 +329,7 @@ class User(AttributeHolder, Deletable, Base):
         prefix = otp[:-32]
         otp_valid = validate_otp(otp)
         if settings['use_ldap'] and settings['ldap_yubikey_attr']:
-            return otp_valid and ldapauth.validate_yubikey(self.name, password, prefix)
+            return otp_valid and ldapauth.validate_yubikey(self.name, password, prefix, settings['ldap_yubikey_attr'])
         elif prefix in self.yubikeys:
             return otp_valid and self.yubikeys[prefix].enabled
 

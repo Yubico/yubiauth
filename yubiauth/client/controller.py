@@ -113,7 +113,7 @@ class Client(Controller):
 
         if user.validate_password(password):
             pw = 'valid password' if password else 'None (valid)'
-            if authenticate_otp(user, otp):
+            if authenticate_otp(user, otp, password):
                 log.info(
                     'Authentication successful. '
                     'Username: %s, password: <%s>, OTP: %s',
