@@ -98,7 +98,7 @@ class LDAPAuthenticator(object):
             return False
 
         try:
-            dn, entry = conn.search_s(dn, ldap.SCOPE_ONELEVEL)[0]
+            dn, entry = conn.search_s(dn, ldap.SCOPE_BASE, attrs=[yk_attr])[0]
             conn.unbind_s()
             if not entry.has_key(yk_attr) or prefix not in entry[yk_attr]:
                 return False
