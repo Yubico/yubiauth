@@ -59,7 +59,7 @@ def requires_otp(user):
     return not (sl == 0 or (sl == 1 and count == 0))
 
 
-def authenticate_otp(user, otp):
+def authenticate_otp(user, otp, password=None):
     if otp:
         if settings['auto_provision'] and len(user.yubikeys) == 0:
             if validate_otp(otp):
@@ -68,7 +68,7 @@ def authenticate_otp(user, otp):
             else:
                 return False
         else:
-            return user.validate_otp(otp)
+            return user.validate_otp(otp, password)
     else:
         return not requires_otp(user)
 

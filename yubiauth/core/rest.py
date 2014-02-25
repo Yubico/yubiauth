@@ -272,14 +272,10 @@ class CoreAPI(REST_API):
             password = request.params['password']
         if 'otp' in request.params:
             otp = request.params['otp']
-
-        if password and otp:
-            (valid_pass, valid_otp) = user.validate_all(password, otp)
-        else:
-            if password:
-                valid_pass = user.validate_password(password)
-            if otp:
-                valid_otp = user.validate_otp(otp)
+        if password:
+            valid_pass = user.validate_password(password)
+        if otp:
+            valid_otp = user.validate_otp(otp, password)
 
         return json_response({
             'valid_password': valid_pass,

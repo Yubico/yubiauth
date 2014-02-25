@@ -87,25 +87,25 @@ class LDAPAuthenticator(object):
         else:
             return False
 
-    def validate_all(self, user, password, otp):
+    def validate_yubikey(self, user, password, prefix):
         """
-        Performs a simple bind to check password and check the OTP against ldap
-        attribute specified in settings['ldap_yubikey_attr']
+        Performs a simple bind and check the OTP against LDAP
+        using settigns['ldap_yubikey_attr']
 
         """
         conn, dn = self._bind(user, password)
         if not conn:
-            return (False, False)
-        prefix = otp[:-32]
+            return False
+
         try:
             (dn, entry) = conn.search_s(dn, ldap.SCOPE_ONELEVEL)
             conn.unbind_s()
             yk_attr = settings['ldap_yubikey_attr']
-            if not entry.has_key(yk_attr) or prefix not in entry[yk_attr] or not validate_otp(otp):
-                return (True, False)
-            else:
-                return (True, True)
+            if not entry.has_key(yk_attr) or prefix not in entry[yk_attr]:
+                return False
+            return True
+
         except ldap.LDAPError:
             log.exception("LDAP lookup failed for yubikey. "
                           "Bind DN: %s, server: %s", bind_dn, self.ldap_server)
-            return (True, False)
+            return False
