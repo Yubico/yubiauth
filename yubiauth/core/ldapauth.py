@@ -35,6 +35,8 @@ import ldap
 import logging
 log = logging.getLogger(__name__)
 
+from yubiauth.util import validate_otp
+
 
 class UserStub(object):
 
@@ -51,7 +53,11 @@ class LDAPAuthenticator(object):
         self.ldap_server = ldap_server
         self.bind_dn = bind_dn
 
-    def authenticate(self, user, password):
+    def _bind(self, user, password):
+        """
+        Binds the ldap and returns a connection object
+
+        """
         if isinstance(user, basestring):
             user = UserStub(user)
         conn = None
@@ -60,20 +66,45 @@ class LDAPAuthenticator(object):
             bind_dn = tmpl.format(user=user)
         except Exception:
             log.exception("Error in LDAP Bind DN template expansion")
-            return False
-
+            return (None, None)
         try:
             conn = ldap.initialize(self.ldap_server)
             conn.set_option(ldap.OPT_NETWORK_TIMEOUT, 10.0)
             conn.simple_bind_s(bind_dn, password)
             log.info("LDAP authentication successful. "
                      "Bind DN: %s, server: %s", bind_dn, self.ldap_server)
-            return True
+            return (conn, bind_dn)
         except ldap.LDAPError:
             log.exception("LDAP authentication failed. "
                           "Bind DN: %s, server: %s", bind_dn, self.ldap_server)
-        finally:
-            if conn:
-                conn.unbind_s()
+            return (None, bind_dn)
 
-        return False
+    def authenticate(self, user, password):
+        conn, dn = self._bind(user, password)
+        if conn:
+            conn.unbind_s()
+            return True
+        else:
+            return False
+
+    def validate_yubikey(self, user, password, prefix, yk_attr):
+        """
+        Performs a simple bind and check the OTP against LDAP
+        using settigns['ldap_yubikey_attr']
+
+        """
+        conn, dn = self._bind(user, password)
+        if not conn:
+            return False
+
+        try:
+            dn, entry = conn.search_s(dn, ldap.SCOPE_BASE)[0]
+            conn.unbind_s()
+            if not entry.has_key(yk_attr) or prefix not in entry[yk_attr]:
+                return False
+            return True
+
+        except ldap.LDAPError:
+            log.exception("LDAP lookup failed for yubikey. "
+                          "Bind DN: %s, server: %s", bind_dn, self.ldap_server)
+            return False

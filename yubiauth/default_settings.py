@@ -117,3 +117,5 @@ BEAKER = {
     'session.key': 'YubiAuth-Session',
     'session.secret': 'LGnYUI5ZeSQ5ooGykySO9vMHKKyGwoC1',
 }
+
+LDAP_YUBIKEY_ATTRIBUTE = ''

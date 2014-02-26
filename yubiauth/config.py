@@ -67,7 +67,8 @@ VALUES = {
     'USE_LDAP': 'use_ldap',
     'LDAP_SERVER': 'ldap_server',
     'LDAP_BIND_DN': 'ldap_bind_dn',
-    'LDAP_AUTO_IMPORT': 'ldap_auto_import'
+    'LDAP_AUTO_IMPORT': 'ldap_auto_import',
+    'LDAP_YUBIKEY_ATTRIBUTE': 'ldap_yubikey_attr'
 }
 
 

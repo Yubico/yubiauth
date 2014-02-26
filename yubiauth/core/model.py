@@ -315,7 +315,7 @@ class User(AttributeHolder, Deletable, Base):
             return True
         return False
 
-    def validate_otp(self, otp):
+    def validate_otp(self, otp, password=None):
         """
         Validates a YubiKey OTP (One Time Password) for the user.
 
@@ -328,7 +328,9 @@ class User(AttributeHolder, Deletable, Base):
         """
         prefix = otp[:-32]
         otp_valid = validate_otp(otp)
-        if prefix in self.yubikeys:
+        if settings['use_ldap'] and settings['ldap_yubikey_attr']:
+            return otp_valid and ldapauth.validate_yubikey(self.name, password, prefix, settings['ldap_yubikey_attr'])
+        elif prefix in self.yubikeys:
             return otp_valid and self.yubikeys[prefix].enabled
 
         return False
