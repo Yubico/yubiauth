@@ -35,7 +35,7 @@ __all__ = [
     'create_tables',
 ]
 
-from config import settings
+from yubiauth.config import settings
 from yubiauth.core.controller import YubiAuth
 
 from yubiauth.util.model import engine
