@@ -34,6 +34,13 @@ import os
 import re
 from release import release
 
+# This is needed for Travis to run the tests without errors.
+# See: http://bugs.python.org/issue15881#msg170215
+try:
+    import multiprocessing
+except ImportError:
+    pass
+
 tests_require = ['nose>=1.0', 'WebTest', 'mock']
 
 # Don't load custom settings (for tests, etc.)
