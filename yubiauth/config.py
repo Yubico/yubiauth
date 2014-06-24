@@ -88,7 +88,7 @@ try:
     sys.dont_write_bytecode = True
     user_settings = imp.load_source('user_settings', SETTINGS_FILE)
     settings = parse(user_settings, settings)
-except IOError, e:
+except IOError as e:
     if not e.errno in [errno.ENOENT, errno.EACCES]:
         raise e
 finally:
