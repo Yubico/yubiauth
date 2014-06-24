@@ -34,4 +34,4 @@ __all__ = [
     'YubiAuth'
 ]
 
-from controller import YubiAuth
+from yubiauth.core.controller import YubiAuth
