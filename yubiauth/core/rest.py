@@ -249,7 +249,10 @@ class CoreAPI(REST_API):
 
     def unbind_yubikey(self, request, username_or_id, prefix):
         user = self._get_user(request, username_or_id)
-        del user.yubikeys[prefix]
+        try:
+            del user.yubikeys[prefix]
+        except KeyError:
+            raise exc.HTTPNotFound
 
         return no_content()
 
