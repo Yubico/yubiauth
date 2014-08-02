@@ -27,7 +27,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 
-__version__ = '0.3.8'
+__version__ = '0.3.9'
 
 __all__ = [
     'YubiAuth',
