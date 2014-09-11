@@ -31,7 +31,7 @@ __all__ = [
     'Controller'
 ]
 
-from sqlalchemy.exc import IntegrityError
+from sqlalchemy.exc import IntegrityError, InvalidRequestError
 
 
 class Controller(object):
@@ -62,6 +62,6 @@ class Controller(object):
         try:
             self.session.commit()
             return True
-        except IntegrityError:
+        except IntegrityError, InvalidRequestError:
             self.session.rollback()
             return False
