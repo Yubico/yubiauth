@@ -3,10 +3,11 @@ All responses are formatted as JSON. Note that the URLs given in this document
 assume the default REST_PATH of 'yubiauth'. If this setting is changed, you
 will need to modify the below URLs accordingly.
 
+[[users]]
 === Users
 Users each have a unique user ID as well as a unique username. Each user has a
-password, and may have zero or more <<_yubikeys,YubiKeys>> assigned to them. 
-Users can have <<_attributes,Attributes>>.
+password, and may have zero or more <<yubikeys,YubiKeys>> assigned to them. 
+Users can have <<attributes,Attributes>>.
 
 ==== Create a user
 ===== Resource
@@ -163,10 +164,11 @@ For example:
 }
 ----
 
+[[yubikeys]]
 === YubiKeys
 YubiKeys are identified by their unique prefixes. Each YubiKey can be assigned to
-zero or more <<_users,Users>>, and can be enabled or disabled. Each YubiKey can have
-<<_attributes,Attributes>>.
+zero or more <<users,Users>>, and can be enabled or disabled. Each YubiKey can have
+<<attributes,Attributes>>.
 
 ==== Assigning a YubiKey to a User
 ===== Resource
@@ -270,8 +272,9 @@ or
 ===== Response
 Returns an empty response with status `204 No Content` on success.
 
+[[attributes]]
 === Attributes
-Both <<_users,Users>> and <<_yubikeys,YubiKeys>> have attributes. These are accessed by 
+Both <<users,Users>> and <<yubikeys,YubiKeys>> have attributes. These are accessed by 
 taking the path of the user or YubiKey and appending "/attributes" to the end, for example:
 
  http://127.0.0.1:8080/yubiauth/users/42/attributes
@@ -368,9 +371,10 @@ available).
 ===== Response
 Returns an empty response with status `204 No Content`.
 
+[[authentication]]
 === Authentication
 Validate user credentials. Also see Validating a users password and/or YubiKey
-under <<_users,Users>>.
+under <<users,Users>>.
 
 ==== Authenticate a user
 Gets a user if the provided credentials are valid and sufficient to 
