@@ -1,5 +1,4 @@
-YubiAuth
-========
+== YubiAuth
 
 YubiAuth provides a user management system which can be used as a base for 
 other systems. It allows the creation of users, which can be authenticated by
