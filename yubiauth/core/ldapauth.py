@@ -35,8 +35,6 @@ import ldap
 import logging
 log = logging.getLogger(__name__)
 
-from yubiauth.util import validate_otp
-
 
 class UserStub(object):
 
@@ -89,8 +87,8 @@ class LDAPAuthenticator(object):
 
     def validate_yubikey(self, user, password, prefix, yk_attr):
         """
-        Performs a simple bind and check the OTP against LDAP
-        using settigns['ldap_yubikey_attr']
+        Performs a simple bind and check the OTP prefix against LDAP using the
+        LDAP attribute in yk_attr.
 
         """
         conn, dn = self._bind(user, password)
@@ -100,11 +98,11 @@ class LDAPAuthenticator(object):
         try:
             dn, entry = conn.search_s(dn, ldap.SCOPE_BASE)[0]
             conn.unbind_s()
-            if not entry.has_key(yk_attr) or prefix not in entry[yk_attr]:
+            if yk_attr not in entry or prefix not in entry[yk_attr]:
                 return False
             return True
 
         except ldap.LDAPError:
             log.exception("LDAP lookup failed for yubikey. "
-                          "Bind DN: %s, server: %s", bind_dn, self.ldap_server)
+                          "Bind DN: %s, server: %s", dn, self.ldap_server)
             return False
