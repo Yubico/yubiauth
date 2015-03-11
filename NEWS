@@ -1,109 +1,77 @@
+* Version 0.3.10 (unreleased)
+ ** Fix per-user _ldap_bind_dn attribute (which was previously ignored).
+
 * Version 0.3.9 (released 2014-08-02)
-
-  * Set pool recycle to 1h in SQLAlchemy (should prevent stale connections for MySQL).
-
-  * Added YubiKey lookup from LDAP.
-
-  * Return 404 when trying to unbind a YubiKey from a user if it was not already bound.
+ ** Set pool recycle to 1h in SQLAlchemy (should prevent stale connections for MySQL).
+ ** Added YubiKey lookup from LDAP.
+ ** Return 404 when trying to unbind a YubiKey from a user if it was not already bound.
 
 * Version 0.3.8 (released 2014-02-21)
-
-  * Fixed compatibility with newer versions of yubico-client.
-
-  * Added dictionary for rlm_yubiauth.
-
-  * Fixed an issue with "allow_empty_passwords" not working correctly.
+ ** Fixed compatibility with newer versions of yubico-client.
+ ** Added dictionary for rlm_yubiauth.
+ ** Fixed an issue with "allow_empty_passwords" not working correctly.
 
 * Version 0.3.7 (released 2013-11-25)
-
-  * Fixed bug with LDAP user auto-creation.
+ ** Fixed bug with LDAP user auto-creation.
 
 * Version 0.3.6 (released 2013-11-22)
-
-  * Added LDAP authentication.
+ ** Added LDAP authentication.
 
 * Version 0.3.5 (released 2013-07-19)
-
-  * Added customizable logging configuration.
+ ** Added customizable logging configuration.
 
 * Version 0.3.4 (released 2013-07-17)
-
-  * Unbounded attribute values.
-
-  * Added HTTP Basic Auth example.
+ ** Unbounded attribute values.
+ ** Added HTTP Basic Auth example.
 
 * Version 0.3.3 (released 2013-06-04)
-
-  * Renamed /client/status to /client/manage.
-
-  * Added setting to enable user deletion.
+ ** Renamed /client/status to /client/manage.
+ ** Added setting to enable user deletion.
 
 * Version 0.3.2 (released 2013-06-04)
-
-  * Accept longs as well as ints in YubiAuth.get_user().
-
-  * Improved logging.
+ ** Accept longs as well as ints in YubiAuth.get_user().
+ ** Improved logging.
 
 * Version 0.3.1 (released 2013-05-30)
-
-  * Bugfix release with include_package_data = True.
+ ** Bugfix release with include_package_data = True.
 
 * Version 0.3.0 (released 2013-05-30)
-
-  * Added examples/ with FreeRADIUS example.
-
-  * Use Beaker for session management.
-
-  * Added basic client UI for user registration and management.
+ ** Added examples/ with FreeRADIUS example.
+ ** Use Beaker for session management.
+ ** Added basic client UI for user registration and management.
 
 * Version 0.2.5 (released 2013-05-17)
-
-  * Fixed bug where custom YKVAL URLs were ignored.
+ ** Fixed bug where custom YKVAL URLs were ignored.
 
 * Version 0.2.4 (released 2013-05-14)
-
-  * Cleanup rows in user-yubikey bindings table on user/yubikey deletion.
-
-  * Added renaming of users to core REST API.
+ ** Cleanup rows in user-yubikey bindings table on user/yubikey deletion.
+ ** Added renaming of users to core REST API.
 
 * Version 0.2.3 (released 2013-05-07)
-
-  * Better security for updating credentials.
-
-  * Moved configuration file to /etc/yubico/auth/yubiauth.conf
+ ** Better security for updating credentials.
+ ** Moved configuration file to /etc/yubico/auth/yubiauth.conf
 
 * Version 0.2.2 (released 2013-05-07)
-
-  * Added auto-provisioning of YubiKeys (on by default)
-
-  * Added support for empty passwords (off by default).
-
-  * Added YubiKey identification (off by default).
+ ** Added auto-provisioning of YubiKeys (on by default)
+ ** Added support for empty passwords (off by default).
+ ** Added YubiKey identification (off by default).
 
 * Version 0.2.1 (released 2013-04-22)
-
-  * Re-release of 0.2.0 as the original release was missing files.
+ ** Re-release of 0.2.0 as the original release was missing files.
 
 * Version 0.2.0 (released 2013-04-22)
-
-  * Reorganized namespace.
-
-  * Added client API.
+ ** Reorganized namespace.
+ ** Added client API.
 
 * Version 0.1.3 (released 2013-04-15)
-
-  * Use latest yubico-client (1.7.0) with new module name.
+ ** Use latest yubico-client (1.7.0) with new module name.
 
 * Version 0.1.2 (released 2013-04-09)
-
-  * Prevent writing compiled version of the settings file.
+ ** Prevent writing compiled version of the settings file.
 
 * Version 0.1.1 (released 2013-04-09)
-
-  * Added REST_PATH setting.
-
-  * Renamed configuration file to /etc/yubico/yubiauth/yubiauth.conf
+ ** Added REST_PATH setting.
+ ** Renamed configuration file to /etc/yubico/yubiauth/yubiauth.conf
 
 * Version 0.1 (released 2013-04-08)
-
-  * First public release.
+ ** First public release.

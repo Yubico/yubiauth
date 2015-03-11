@@ -64,5 +64,4 @@ def validate_otp(otp):
     try:
         return yubico.verify(otp)
     except:
-        pass
-    return False
+        return False
