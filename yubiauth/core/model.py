@@ -195,7 +195,7 @@ class AttributeHolder(object):
 
     @property
     def attributes(self):
-        if not '_attributes' in self.__dict__:
+        if '_attributes' not in self.__dict__:
             self._attributes = AttributeProxy(self)
         return self._attributes
 
@@ -216,8 +216,8 @@ class AttributeHolder(object):
     @declared_attr
     def _attribute_association(cls):
         return relationship('AttributeAssociation', backref=backref(
-            '%s_owner' % cls._discriminator, uselist=False), cascade=
-            'all, delete')
+            '%s_owner' % cls._discriminator, uselist=False),
+            cascade='all, delete')
 
 
 class User(AttributeHolder, Deletable, Base):
@@ -302,7 +302,7 @@ class User(AttributeHolder, Deletable, Base):
         @rtype bool
         """
         if settings['use_ldap']:
-            return ldapauth.authenticate(self.name, password)
+            return ldapauth.authenticate(self, password)
 
         if not self.auth and not password:
             return settings['allow_empty'] is True
@@ -329,7 +329,8 @@ class User(AttributeHolder, Deletable, Base):
         prefix = otp[:-32]
         otp_valid = validate_otp(otp)
         if settings['use_ldap'] and settings['ldap_yubikey_attr']:
-            return otp_valid and ldapauth.validate_yubikey(self.name, password, prefix, settings['ldap_yubikey_attr'])
+            return otp_valid and ldapauth.validate_yubikey(
+                self, password, prefix, settings['ldap_yubikey_attr'])
         elif prefix in self.yubikeys:
             return otp_valid and self.yubikeys[prefix].enabled
 
