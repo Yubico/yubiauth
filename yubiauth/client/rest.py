@@ -112,7 +112,14 @@ def require_session(func=None, **kwargs):
 
 
 def get_session_cookie(request):
-    cookie = request.environ['beaker.session']._headers['cookie_out']
+    log.info('beaker.session: %r', request.environ['beaker.session']._headers)
+    headers = request.environ['beaker.session']._headers
+    if SESSION_COOKIE in (headers.get('cookie_set') or ''):
+        cookie = headers['cookie_set']
+    elif SESSION_COOKIE in (headers.get('cookie') or ''):
+        cookie = headers['cookie']
+    else:
+        return None
     return cookie.split('=', 1)[1].split(';', 1)[0]
 
 

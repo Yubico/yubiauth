@@ -37,15 +37,18 @@ def test_login_logout():
 
 
 def test_header_authentication():
-    app.post(
+    json_session_id = app.post(
         '/login',
         {'username': 'user1', 'password': 'pass1'}
-    )
+    ).json.get('session')
 
     session_id = app.cookies[SESSION_COOKIE]
-    #Clear the cookie
+    # Clear the cookie
     app.reset()
     app.get('/status', status=400)
+
+    # Make sure cookie matches json body
+    assert session_id == json_session_id
 
     headers = {SESSION_HEADER: session_id}
 
