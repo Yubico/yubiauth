@@ -1,3 +1,5 @@
+* Version 0.3.11 (unreleased)
+
 * Version 0.3.10 (released 2015-03-11)
  ** Fix per-user "_ldap_bind_dn" attribute (which was previously ignored).
  ** Improved documentation.
