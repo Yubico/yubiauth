@@ -6,7 +6,7 @@ you may want to use a YubiHSM together with YubiAuth, and how to set it all up.
 
 === Benefits of a YubiHSM
 ==== Without a YubiHSM
-In the event that your server becomes compromized, an attacker may gain access
+In the event that your server becomes compromised, an attacker may gain access
 to the YubiAuth database, which stores user credentials such as usernames and
 passwords. Passwords are never stored as plain text, they are always hashed
 to make it as difficult as possible for an attacker to extract them. Even so,
@@ -37,7 +37,7 @@ which is not connected to the Internet (this is for initially programming the
 YubiHSM) while pressing the configuration switch to enter configuration mode.
 Once connected, access the device configuration by opening a terminal program,
 and connecting to the device (See the
-http://www.yubico.com/wp-content/uploads/2012/10/YubiHSM-Manual-v1.0.4.pdf[YubiHSM Manual]
+https://www.yubico.com/wp-content/uploads/2015/04/YubiHSM-Manual_1_5_0.pdf[YubiHSM Manual]
 for detailed instructions). If the YubiHSM has been previously configured,
 begin by erasing the old configuration as described in the manual. With an
 empty configuration, program the YubiHSM in hsm mode with HMAC_SHA1_GENERATE
