@@ -1,5 +1,7 @@
 == YubiAuth
 
+NOTE: This project is deprecated and is no longer being maintained.
+
 YubiAuth provides a user management system which can be used as a base for 
 other systems. It allows the creation of users, which can be authenticated by
 username, password, and optionally a YubiKey OTP.
